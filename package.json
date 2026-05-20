@@ -1,0 +1,16 @@
+{
+  "name": "ilha-das-palavras",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Jogo educativo de Portugues para 4a serie",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.0.0",
+    "jsdom": "^25.0.0",
+    "vitest": "^2.0.0"
+  }
+}
