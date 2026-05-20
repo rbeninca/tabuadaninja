@@ -59,11 +59,26 @@
     <!-- ==================== FEEDBACK OVERLAY ==================== -->
     <div class="feedback-overlay" id="feedback-overlay" style="display:none;pointer-events:all;"></div>
 
+    <!-- ==================== BOTÃO MUTE FLUTUANTE ==================== -->
+    <button id="btn-mute" title="Ligar/desligar som"
+      style="position:fixed;bottom:16px;right:16px;z-index:500;background:rgba(255,255,255,0.85);
+             border:none;border-radius:50%;width:48px;height:48px;font-size:1.5rem;cursor:pointer;
+             box-shadow:0 2px 8px rgba(0,0,0,0.2);backdrop-filter:blur(4px);">
+      🔊
+    </button>
+
   </div>
 
   <script type="module">
     import App from './js/core/App.js'
-    window.addEventListener('DOMContentLoaded', () => App.init())
+    import AudioCtrl from './js/ui/AudioCtrl.js'
+    window.addEventListener('DOMContentLoaded', () => {
+      App.init()
+      document.getElementById('btn-mute')?.addEventListener('click', () => {
+        const muted = AudioCtrl.toggleMute()
+        document.getElementById('btn-mute').textContent = muted ? '🔇' : '🔊'
+      })
+    })
   </script>
 </body>
 </html>
