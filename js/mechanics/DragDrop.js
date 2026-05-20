@@ -1,14 +1,14 @@
 let draggedItem = null
-let pendingItems = []
 let answeredCorrectly = 0
 let onAnswerCallback = null
 let currentQuestion = null
+let finished = false
 
 function render(question, container, onAnswer) {
   currentQuestion = question
   onAnswerCallback = onAnswer
-  pendingItems = [...question.items]
   answeredCorrectly = 0
+  finished = false
 
   container.innerHTML = `
     <div class="question-instruction">${question.instruction}</div>
@@ -74,6 +74,7 @@ function bindEvents(container, question) {
 }
 
 function handleDrop(chip, zone, question) {
+  if (finished) return
   const answer = chip.dataset.answer
   const target = zone.dataset.target
   const isCorrect = answer === target
@@ -86,14 +87,13 @@ function handleDrop(chip, zone, question) {
     zone.appendChild(chip)
     answeredCorrectly++
     if (answeredCorrectly >= question.items.length) {
+      finished = true
       setTimeout(() => onAnswerCallback(true, question), 400)
     }
   } else {
-    setTimeout(() => {
-      chip.classList.remove('wrong')
-      chip.classList.add('anim-shake')
-      setTimeout(() => chip.classList.remove('anim-shake'), 500)
-    }, 200)
+    finished = true
+    chip.classList.add('anim-shake')
+    setTimeout(() => chip.classList.remove('anim-shake'), 500)
     onAnswerCallback(false, question)
   }
 }
