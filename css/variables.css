@@ -1,0 +1,80 @@
+:root {
+  /* Cores principais */
+  --color-primary: #FF8C00;
+  --color-primary-dark: #E67600;
+  --color-secondary: #4CAF50;
+  --color-secondary-dark: #388E3C;
+  --color-accent: #9C27B0;
+  --color-accent-light: #CE93D8;
+
+  /* Cores de fundo */
+  --color-bg-home: #87CEEB;
+  --color-bg-map: #7EC8E3;
+  --color-bg-level: #F0F8FF;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Cores de feedback */
+  --color-correct: #4CAF50;
+  --color-wrong: #F44336;
+  --color-hint: #FF9800;
+  --color-star: #FFD700;
+
+  /* Cores de texto */
+  --color-text-dark: #2C3E50;
+  --color-text-light: #FFFFFF;
+  --color-text-muted: #7F8C8D;
+
+  /* Cores de UI */
+  --color-heart: #E74C3C;
+  --color-heart-empty: #BDC3C7;
+  --color-locked: #95A5A6;
+  --color-unlocked: #F39C12;
+  --color-completed: #27AE60;
+
+  /* Fontes */
+  --font-main: 'Nunito', 'Comic Sans MS', 'Trebuchet MS', cursive, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  --font-size-3xl: 2.5rem;
+
+  /* Espaçamentos */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Bordas */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  /* Sombras */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.2);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.25);
+  --shadow-btn: 0 4px 0 rgba(0,0,0,0.2);
+
+  /* Transições */
+  --transition-fast: 0.15s ease;
+  --transition-md: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  /* Tamanhos de botão (tablet-friendly) */
+  --btn-height-sm: 44px;
+  --btn-height-md: 56px;
+  --btn-height-lg: 72px;
+
+  /* Z-index */
+  --z-base: 1;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+}
