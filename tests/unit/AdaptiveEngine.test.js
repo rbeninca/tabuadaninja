@@ -94,11 +94,18 @@ describe('integridade do banco de questoes', () => {
   })
 
   it('todas as questoes tem campos obrigatorios', () => {
-    const required = ['id', 'levelId', 'type', 'category', 'instruction', 'explanation']
+    const required = ['id', 'levelId', 'type', 'category', 'instruction', 'explanation', 'difficulty']
     questions.forEach(q => {
       required.forEach(field => {
         expect(q, `questao ${q.id} sem campo ${field}`).toHaveProperty(field)
       })
+    })
+  })
+
+  it('todas as questoes tem dificuldade valida', () => {
+    const validDifficulties = ['facil', 'medio', 'dificil']
+    questions.forEach(q => {
+      expect(validDifficulties, `dificuldade invalida: ${q.difficulty} em ${q.id}`).toContain(q.difficulty)
     })
   })
 

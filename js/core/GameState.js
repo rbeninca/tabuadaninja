@@ -13,7 +13,8 @@ const INITIAL_STATE = {
   stars: {},
   errors: {},
   rewards: [],
-  completedLevels: []
+  completedLevels: [],
+  voiceGender: 'feminina'
 }
 
 let state = { ...INITIAL_STATE }
@@ -76,7 +77,8 @@ function hydrate(savedData) {
     stars: savedData.stars || {},
     errors: savedData.errors || {},
     rewards: savedData.rewards || [],
-    completedLevels: savedData.completedLevels || []
+    completedLevels: savedData.completedLevels || [],
+    voiceGender: savedData.voiceGender || INITIAL_STATE.voiceGender
   }
 }
 

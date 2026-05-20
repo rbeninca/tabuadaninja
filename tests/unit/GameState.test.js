@@ -15,6 +15,7 @@ describe('GameState.get', () => {
     expect(GameState.get('combo')).toBe(0)
     expect(GameState.get('rewards')).toEqual([])
     expect(GameState.get('completedLevels')).toEqual([])
+    expect(GameState.get('voiceGender')).toBe('feminina')
   })
 
   it('retorna copia do estado completo sem argumento', () => {
@@ -144,11 +145,13 @@ describe('GameState.hydrate', () => {
       stars: { 1: 3, 2: 2 },
       errors: { verbo: 5 },
       rewards: ['Chapéu'],
-      completedLevels: [1, 2]
+      completedLevels: [1, 2],
+      voiceGender: 'masculina'
     })
     expect(GameState.get('stars')[1]).toBe(3)
     expect(GameState.get('errors')['verbo']).toBe(5)
     expect(GameState.get('rewards')).toContain('Chapéu')
     expect(GameState.get('completedLevels')).toContain(2)
+    expect(GameState.get('voiceGender')).toBe('masculina')
   })
 })

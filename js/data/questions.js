@@ -1,6 +1,6 @@
 // Banco completo de questões — 10 por fase + extras para revisão adaptativa
 
-export const questions = [
+const rawQuestions = [
 
   // ==================== FASE 1 — Ponte dos Nomes ====================
   // Substantivo próprio e comum
@@ -12,7 +12,9 @@ export const questions = [
       { text: 'Ana', answer: 'proprio' },
       { text: 'cidade', answer: 'comum' },
       { text: 'Brasil', answer: 'proprio' },
-      { text: 'cachorro', answer: 'comum' }
+      { text: 'cachorro', answer: 'comum' },
+      { text: 'Amazonas', answer: 'proprio' },
+      { text: 'menino', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -28,7 +30,9 @@ export const questions = [
       { text: 'Pedro', answer: 'proprio' },
       { text: 'escola', answer: 'comum' },
       { text: 'Maria', answer: 'proprio' },
-      { text: 'livro', answer: 'comum' }
+      { text: 'livro', answer: 'comum' },
+      { text: 'Lisboa', answer: 'proprio' },
+      { text: 'professora', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -44,7 +48,9 @@ export const questions = [
       { text: 'Rio de Janeiro', answer: 'proprio' },
       { text: 'professor', answer: 'comum' },
       { text: 'Rex', answer: 'proprio' },
-      { text: 'gato', answer: 'comum' }
+      { text: 'gato', answer: 'comum' },
+      { text: 'Argentina', answer: 'proprio' },
+      { text: 'rua', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -60,7 +66,9 @@ export const questions = [
       { text: 'Mariana', answer: 'proprio' },
       { text: 'menina', answer: 'comum' },
       { text: 'São Paulo', answer: 'proprio' },
-      { text: 'país', answer: 'comum' }
+      { text: 'país', answer: 'comum' },
+      { text: 'Atlântico', answer: 'proprio' },
+      { text: 'oceano', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -76,7 +84,9 @@ export const questions = [
       { text: 'Florianópolis', answer: 'proprio' },
       { text: 'praia', answer: 'comum' },
       { text: 'Lucas', answer: 'proprio' },
-      { text: 'amigo', answer: 'comum' }
+      { text: 'amigo', answer: 'comum' },
+      { text: 'Nárnia', answer: 'proprio' },
+      { text: 'reino', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -92,7 +102,9 @@ export const questions = [
       { text: 'Amazônia', answer: 'proprio' },
       { text: 'rio', answer: 'comum' },
       { text: 'Joana', answer: 'proprio' },
-      { text: 'flor', answer: 'comum' }
+      { text: 'flor', answer: 'comum' },
+      { text: 'Amazonas', answer: 'proprio' },
+      { text: 'estado', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -108,7 +120,9 @@ export const questions = [
       { text: 'Carlos', answer: 'proprio' },
       { text: 'bola', answer: 'comum' },
       { text: 'Portugal', answer: 'proprio' },
-      { text: 'país', answer: 'comum' }
+      { text: 'país', answer: 'comum' },
+      { text: 'Marta', answer: 'proprio' },
+      { text: 'jogadora', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -124,7 +138,9 @@ export const questions = [
       { text: 'Júpiter', answer: 'proprio' },
       { text: 'planeta', answer: 'comum' },
       { text: 'Sofia', answer: 'proprio' },
-      { text: 'criança', answer: 'comum' }
+      { text: 'criança', answer: 'comum' },
+      { text: 'Europa', answer: 'proprio' },
+      { text: 'satélite', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -140,7 +156,9 @@ export const questions = [
       { text: 'Nile', answer: 'proprio' },
       { text: 'rio', answer: 'comum' },
       { text: 'Belo Horizonte', answer: 'proprio' },
-      { text: 'cidade', answer: 'comum' }
+      { text: 'cidade', answer: 'comum' },
+      { text: 'Copacabana', answer: 'proprio' },
+      { text: 'bairro', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
@@ -156,13 +174,33 @@ export const questions = [
       { text: 'Bolívar', answer: 'proprio' },
       { text: 'herói', answer: 'comum' },
       { text: 'Curitiba', answer: 'proprio' },
-      { text: 'rua', answer: 'comum' }
+      { text: 'rua', answer: 'comum' },
+      { text: 'Tejo', answer: 'proprio' },
+      { text: 'ponte', answer: 'comum' }
     ],
     targets: [
       { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
       { id: 'comum', label: '📦 Substantivo Comum', icon: '📦' }
     ],
     explanation: 'Nomes históricos e geográficos específicos são sempre substantivos próprios.'
+  },
+  {
+    id: 'q111', levelId: 1, type: 'drag-category',
+    category: 'substantivo_proprio_comum',
+    instruction: 'Arraste cada palavra para o baú correto!',
+    items: [
+      { text: 'Recife', answer: 'proprio' },
+      { text: 'cidade', answer: 'comum' },
+      { text: 'Helena', answer: 'proprio' },
+      { text: 'aluna', answer: 'comum' },
+      { text: 'Londres', answer: 'proprio' },
+      { text: 'capital', answer: 'comum' }
+    ],
+    targets: [
+      { id: 'proprio', label: '📛 Substantivo Próprio', icon: '👑' },
+      { id: 'comum', label: '📦 Substantivo Comum', icon: '📦' }
+    ],
+    explanation: '"Recife" e "Helena" são nomes específicos. "Cidade" e "aluna" são nomes gerais.'
   },
 
   // ==================== FASE 2 — Floresta dos Coletivos ====================
@@ -172,7 +210,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'cardume', right: 'peixes' },
-      { left: 'enxame', right: 'abelhas' }
+      { left: 'enxame', right: 'abelhas' },
+      { left: 'rebanho', right: 'ovelhas' },
+      { left: 'matilha', right: 'lobos' }
     ],
     explanation: '"Cardume" é o coletivo de peixes. "Enxame" é o coletivo de abelhas.'
   },
@@ -182,7 +222,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'alcateia', right: 'lobos' },
-      { left: 'bando', right: 'pássaros' }
+      { left: 'bando', right: 'pássaros' },
+      { left: 'cardume', right: 'sardinhas' },
+      { left: 'nuvem', right: 'gafanhotos' }
     ],
     explanation: '"Alcateia" é o coletivo de lobos. "Bando" é o coletivo de pássaros.'
   },
@@ -192,7 +234,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'turma', right: 'alunos' },
-      { left: 'frota', right: 'veículos' }
+      { left: 'frota', right: 'veículos' },
+      { left: 'elenco', right: 'atores' },
+      { left: 'time', right: 'jogadores' }
     ],
     explanation: '"Turma" é o coletivo de alunos. "Frota" é o coletivo de veículos.'
   },
@@ -202,7 +246,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'biblioteca', right: 'livros' },
-      { left: 'manada', right: 'elefantes' }
+      { left: 'manada', right: 'elefantes' },
+      { left: 'arquipélago', right: 'ilhas' },
+      { left: 'constelação', right: 'astros' }
     ],
     explanation: '"Biblioteca" é o coletivo de livros. "Manada" é o coletivo de elefantes.'
   },
@@ -212,7 +258,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'colmeia', right: 'abelhas' },
-      { left: 'matilha', right: 'cães' }
+      { left: 'matilha', right: 'cães' },
+      { left: 'buquê', right: 'flores' },
+      { left: 'álbum', right: 'fotografias' }
     ],
     explanation: '"Colmeia" é onde vivem as abelhas (coletivo). "Matilha" é o coletivo de cães.'
   },
@@ -222,7 +270,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'constelação', right: 'estrelas' },
-      { left: 'arquipélago', right: 'ilhas' }
+      { left: 'arquipélago', right: 'ilhas' },
+      { left: 'ninhada', right: 'filhotes' },
+      { left: 'flora', right: 'plantas' }
     ],
     explanation: '"Constelação" é o coletivo de estrelas. "Arquipélago" é o coletivo de ilhas.'
   },
@@ -232,7 +282,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'bouquet', right: 'flores' },
-      { left: 'tribo', right: 'pessoas' }
+      { left: 'tribo', right: 'pessoas' },
+      { left: 'frota', right: 'navios' },
+      { left: 'cacho', right: 'uvas' }
     ],
     explanation: '"Bouquet" é o coletivo de flores. "Tribo" é o coletivo de pessoas de mesma cultura.'
   },
@@ -242,7 +294,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'vara', right: 'porcos' },
-      { left: 'piada', right: 'palavras' }
+      { left: 'piada', right: 'palavras' },
+      { left: 'multidão', right: 'torcedores' },
+      { left: 'caravana', right: 'viajantes' }
     ],
     explanation: '"Vara" é o coletivo de porcos. Use o contexto para identificar coletivos!'
   },
@@ -252,7 +306,9 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'horda', right: 'bárbaros' },
-      { left: 'ninhada', right: 'filhotes' }
+      { left: 'ninhada', right: 'filhotes' },
+      { left: 'esquadrilha', right: 'aviões' },
+      { left: 'junta', right: 'bois' }
     ],
     explanation: '"Ninhada" é o coletivo de filhotes nascidos juntos.'
   },
@@ -262,9 +318,23 @@ export const questions = [
     instruction: 'Ligue o coletivo ao grupo correto!',
     pairs: [
       { left: 'acervo', right: 'obras de arte' },
-      { left: 'elenco', right: 'atores' }
+      { left: 'elenco', right: 'atores' },
+      { left: 'quadrilha', right: 'ladrões' },
+      { left: 'discoteca', right: 'discos' }
     ],
     explanation: '"Acervo" é o coletivo de obras. "Elenco" é o coletivo de atores.'
+  },
+  {
+    id: 'q211', levelId: 2, type: 'match-pairs',
+    category: 'substantivo_coletivo',
+    instruction: 'Ligue o coletivo ao grupo correto!',
+    pairs: [
+      { left: 'pinacoteca', right: 'quadros' },
+      { left: 'multidão', right: 'pessoas' },
+      { left: 'pomar', right: 'árvores frutíferas' },
+      { left: 'cardápio', right: 'pratos' }
+    ],
+    explanation: '"Pinacoteca" é coletivo de quadros. "Multidão" é coletivo de pessoas.'
   },
 
   // ==================== FASE 3 — Caverna das Ideias ====================
@@ -428,6 +498,22 @@ export const questions = [
     ],
     explanation: '"Robô" e "chapéu" são objetos concretos. "Criatividade" e "imaginação" são capacidades abstratas.'
   },
+  {
+    id: 'q311', levelId: 3, type: 'drag-category',
+    category: 'substantivo_concreto_abstrato',
+    instruction: 'Arraste cada palavra para o portal correto!',
+    items: [
+      { text: 'microscópio', answer: 'concreto' },
+      { text: 'solidariedade', answer: 'abstrato' },
+      { text: 'foguete', answer: 'concreto' },
+      { text: 'curiosidade', answer: 'abstrato' }
+    ],
+    targets: [
+      { id: 'concreto', label: '🪨 Concreto (existe)', icon: '🏠' },
+      { id: 'abstrato', label: '💭 Abstrato (sentimento/ideia)', icon: '💜' }
+    ],
+    explanation: 'Objetos e seres são concretos. Ideias e qualidades, como "solidariedade", são abstratas.'
+  },
 
   // ==================== FASE 4 — Jardim das Qualidades ====================
   {
@@ -520,6 +606,15 @@ export const questions = [
     correct: 'colorido',
     explanation: '"Colorido" descreve como é o pássaro — é um adjetivo!'
   },
+  {
+    id: 'q411', levelId: 4, type: 'select-word',
+    category: 'adjetivo',
+    instruction: 'Toque no adjetivo da frase!',
+    sentence: 'A pesquisadora curiosa fez perguntas.',
+    words: ['A', 'pesquisadora', 'curiosa', 'fez', 'perguntas'],
+    correct: 'curiosa',
+    explanation: '"Curiosa" caracteriza a pesquisadora. Palavra que caracteriza é adjetivo.'
+  },
 
   // ==================== FASE 5 — Montanha das Ações ====================
   {
@@ -611,6 +706,15 @@ export const questions = [
     words: ['A', 'borboleta', 'pousou', 'na', 'flor'],
     correct: 'pousou',
     explanation: '"Pousou" é a ação da borboleta — é um verbo!'
+  },
+  {
+    id: 'q511', levelId: 5, type: 'select-word',
+    category: 'verbo',
+    instruction: 'Toque no verbo da frase!',
+    sentence: 'Os atletas treinaram com disciplina.',
+    words: ['Os', 'atletas', 'treinaram', 'com', 'disciplina'],
+    correct: 'treinaram',
+    explanation: '"Treinaram" mostra a ação dos atletas. Toda ação na frase é verbo.'
   },
 
   // ==================== FASE 6 — Praia do C, S e Ç ====================
@@ -713,6 +817,16 @@ export const questions = [
     options: ['c', 's', 'ç'],
     finalWord: 'caça',
     explanation: 'Em "caça", o som /s/ antes de A usa Ç (cedilha)!'
+  },
+  {
+    id: 'q611', levelId: 6, type: 'complete-word',
+    category: 'ortografia_c_s_cedilha',
+    instruction: 'Arraste a letra certa para completar a palavra!',
+    wordTemplate: 'pa__oca',
+    correct: 'ç',
+    options: ['c', 's', 'ç'],
+    finalWord: 'paçoca',
+    explanation: 'Em "paçoca", o som /s/ antes de O usa Ç (cedilha).'
   },
 
   // ==================== FASE 7 — Castelo da Revisão (mix) ====================
@@ -829,11 +943,70 @@ export const questions = [
       { id: 'comum', label: '📦 Substantivo Comum', icon: '📦' }
     ],
     explanation: '"Merlin" e "Camelot" são nomes específicos — próprios!'
+  },
+  {
+    id: 'q711', levelId: 7, type: 'build-sentence',
+    category: 'sintaxe_frase',
+    instruction: 'Monte a frase na ordem correta!',
+    words: ['A', 'aventura', 'ficou', 'emocionante'],
+    correctSentence: 'A aventura ficou emocionante',
+    explanation: 'A frase correta respeita a ordem sujeito + verbo + complemento.'
   }
 ]
 
+const DIFFICULTY_ORDER = ['facil', 'medio', 'dificil']
+
+function buildDifficultyByLevel(items) {
+  const byLevel = new Map()
+
+  items.forEach((q) => {
+    if (!byLevel.has(q.levelId)) byLevel.set(q.levelId, [])
+    byLevel.get(q.levelId).push(q)
+  })
+
+  const difficultyById = new Map()
+
+  byLevel.forEach((levelQuestions) => {
+    const ordered = [...levelQuestions].sort((a, b) => a.id.localeCompare(b.id))
+    const total = ordered.length
+
+    ordered.forEach((q, idx) => {
+      const ratio = (idx + 1) / total
+      let difficulty = 'facil'
+
+      if (ratio > 0.66) {
+        difficulty = 'dificil'
+      } else if (ratio > 0.33) {
+        difficulty = 'medio'
+      }
+
+      difficultyById.set(q.id, difficulty)
+    })
+  })
+
+  return difficultyById
+}
+
+const difficultyById = buildDifficultyByLevel(rawQuestions)
+
+export const questions = rawQuestions.map((q) => ({
+  ...q,
+  difficulty: q.difficulty || difficultyById.get(q.id) || 'medio'
+}))
+
 export function getQuestionsByLevel(levelId) {
-  return questions.filter(q => q.levelId === levelId)
+  const rank = DIFFICULTY_ORDER.reduce((acc, item, idx) => {
+    acc[item] = idx
+    return acc
+  }, {})
+
+  return questions
+    .filter(q => q.levelId === levelId)
+    .sort((a, b) => {
+      const diff = (rank[a.difficulty] ?? 1) - (rank[b.difficulty] ?? 1)
+      if (diff !== 0) return diff
+      return a.id.localeCompare(b.id)
+    })
 }
 
 export function getQuestionById(id) {

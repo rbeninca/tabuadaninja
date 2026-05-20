@@ -18,6 +18,7 @@ function validate(data) {
     if (type === 'object' && !Array.isArray(data[key]) && typeof data[key] !== 'object') return false
     if (type === 'number' && typeof data[key] !== 'number') return false
   }
+  if ('voiceGender' in data && typeof data.voiceGender !== 'string') return false
   return true
 }
 
@@ -30,6 +31,7 @@ function save(data) {
     errors: data.errors || {},
     rewards: data.rewards || [],
     completedLevels: data.completedLevels || [],
+    voiceGender: data.voiceGender || 'feminina',
     lastSaved: new Date().toISOString()
   }
   try {

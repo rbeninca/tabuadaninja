@@ -1,3 +1,6 @@
+import AudioCtrl from '../ui/AudioCtrl.js'
+import GameState from '../core/GameState.js'
+
 let selectedLeft = null
 let matchedCount = 0
 let totalPairs = 0
@@ -5,6 +8,45 @@ let onAnswerCallback = null
 let currentQuestion = null
 let wrongAttempt = false
 let finished = false
+
+function getPtVoices(voices = []) {
+  return voices.filter(v => v.lang?.toLowerCase() === 'pt-br' || v.lang?.toLowerCase().startsWith('pt'))
+}
+
+function getVoiceByGender(voices = [], voiceGender = 'feminina') {
+  const ptVoices = getPtVoices(voices)
+  if (ptVoices.length === 0) return null
+
+  const femaleHints = ['female', 'feminina', 'mulher', 'woman', 'maria', 'luciana', 'brenda']
+  const maleHints = ['male', 'masculina', 'homem', 'man', 'ricardo', 'antonio', 'paulo']
+  const hints = voiceGender === 'masculina' ? maleHints : femaleHints
+
+  const matched = ptVoices.find((voice) => {
+    const name = (voice.name || '').toLowerCase()
+    return hints.some(hint => name.includes(hint))
+  })
+
+  return matched || ptVoices[0]
+}
+
+function speakWord(text) {
+  if (!text || AudioCtrl.isMuted()) return
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return
+
+  try {
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'pt-BR'
+    utterance.rate = 0.95
+    utterance.pitch = 1
+
+    const voiceGender = GameState.get('voiceGender') || 'feminina'
+    const voice = getVoiceByGender(window.speechSynthesis.getVoices(), voiceGender)
+    if (voice) utterance.voice = voice
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+  } catch {}
+}
 
 function render(question, container, onAnswer) {
   currentQuestion = question
@@ -50,6 +92,8 @@ function render(question, container, onAnswer) {
 
 function handleClick(btn, container, question) {
   if (finished || btn.classList.contains('matched')) return
+
+  speakWord(btn.dataset.value)
 
   const side = btn.dataset.side
 

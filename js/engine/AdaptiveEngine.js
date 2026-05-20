@@ -1,6 +1,7 @@
 import { getQuestionsByLevel, questions } from '../data/questions.js'
 
 const TOTAL_QUESTIONS_PER_LEVEL = 10
+const DIFFICULTY_ORDER = ['facil', 'medio', 'dificil']
 
 function shuffle(arr) {
   const a = [...arr]
@@ -21,11 +22,29 @@ function weightedShuffle(pool, errors) {
   return shuffle(weighted)
 }
 
+function progressiveWeightedPool(pool, errors) {
+  const ordered = []
+
+  DIFFICULTY_ORDER.forEach((difficulty) => {
+    const bucket = pool.filter(q => q.difficulty === difficulty)
+    if (bucket.length > 0) {
+      ordered.push(...weightedShuffle(bucket, errors))
+    }
+  })
+
+  const unknownDifficulty = pool.filter(q => !q.difficulty || !DIFFICULTY_ORDER.includes(q.difficulty))
+  if (unknownDifficulty.length > 0) {
+    ordered.push(...weightedShuffle(unknownDifficulty, errors))
+  }
+
+  return ordered
+}
+
 function getQuestionsForLevel(levelId, errors = {}, count = TOTAL_QUESTIONS_PER_LEVEL) {
   const pool = getQuestionsByLevel(levelId)
   if (pool.length === 0) return []
 
-  const weighted = weightedShuffle(pool, errors)
+  const weighted = progressiveWeightedPool(pool, errors)
   const seen = new Set()
   const result = []
 
@@ -63,7 +82,7 @@ function getQuestionsForReview(errors = {}, count = TOTAL_QUESTIONS_PER_LEVEL) {
 
   if (pool.length === 0) return getQuestionsForLevel(7, errors, count)
 
-  const weighted = weightedShuffle(pool, errors)
+  const weighted = progressiveWeightedPool(pool, errors)
   const seen = new Set()
   const result = []
 

@@ -1,9 +1,56 @@
 import Router from '../core/Router.js'
 import Storage from '../storage/Storage.js'
 import GameState from '../core/GameState.js'
+import ProgressionEngine from '../engine/ProgressionEngine.js'
+
+function saveVoicePreference(voiceGender) {
+  GameState.set({ voiceGender })
+  ProgressionEngine.persistProgress()
+}
+
+function getPtVoices(voices = []) {
+  return voices.filter(v => v.lang?.toLowerCase() === 'pt-br' || v.lang?.toLowerCase().startsWith('pt'))
+}
+
+function getVoiceByGender(voices = [], voiceGender = 'feminina') {
+  const ptVoices = getPtVoices(voices)
+  if (ptVoices.length === 0) return null
+
+  const femaleHints = ['female', 'feminina', 'mulher', 'woman', 'maria', 'luciana', 'brenda']
+  const maleHints = ['male', 'masculina', 'homem', 'man', 'ricardo', 'antonio', 'paulo']
+  const hints = voiceGender === 'masculina' ? maleHints : femaleHints
+
+  const matched = ptVoices.find((voice) => {
+    const name = (voice.name || '').toLowerCase()
+    return hints.some(hint => name.includes(hint))
+  })
+
+  return matched || ptVoices[0]
+}
+
+function speakPreview(voiceGender) {
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+    alert('Seu navegador não suporta leitura de voz. Use Chrome atualizado para testar.')
+    return
+  }
+
+  try {
+    const utterance = new SpeechSynthesisUtterance('Olá! Vamos explorar a Ilha Mágica das Palavras.')
+    utterance.lang = 'pt-BR'
+    utterance.rate = 0.95
+    utterance.pitch = 1
+
+    const voice = getVoiceByGender(window.speechSynthesis.getVoices(), voiceGender)
+    if (voice) utterance.voice = voice
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+  } catch {}
+}
 
 function render() {
   const hasSave = Storage.exists()
+  const voiceGender = GameState.get('voiceGender') || 'feminina'
   const el = document.getElementById('home-content')
 
   el.innerHTML = `
@@ -19,6 +66,18 @@ function render() {
     </div>
 
     <div style="display:flex;flex-direction:column;gap:16px;width:100%;max-width:320px;align-items:center;">
+      <div style="width:100%;background:#fff6dd;border:2px solid #f0d08a;border-radius:12px;padding:12px;">
+        <div style="font-weight:800;font-size:0.9rem;color:#7a5b1b;margin-bottom:8px;">🔊 Configuração de Voz</div>
+        <label for="voice-gender" style="display:block;font-size:0.8rem;color:#6d6d6d;margin-bottom:6px;">Escolha a voz da leitura:</label>
+        <select id="voice-gender" class="btn btn-neutral btn-sm" style="width:100%;background:#fff;">
+          <option value="feminina" ${voiceGender === 'feminina' ? 'selected' : ''}>Feminina</option>
+          <option value="masculina" ${voiceGender === 'masculina' ? 'selected' : ''}>Masculina</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="btn-test-voice" style="margin-top:8px;width:100%;">
+          🔈 Testar Voz
+        </button>
+      </div>
+
       <button class="btn btn-primary btn-lg" id="btn-start">
         🗺️ Começar Aventura
       </button>
@@ -49,6 +108,17 @@ function render() {
       GameState.reset()
     }
     Router.navigate('map')
+  })
+
+  document.getElementById('voice-gender')?.addEventListener('change', (e) => {
+    const selected = e.target.value === 'masculina' ? 'masculina' : 'feminina'
+    saveVoicePreference(selected)
+  })
+
+  document.getElementById('btn-test-voice')?.addEventListener('click', () => {
+    const selected = document.getElementById('voice-gender')?.value === 'masculina' ? 'masculina' : 'feminina'
+    saveVoicePreference(selected)
+    speakPreview(selected)
   })
 
   document.getElementById('btn-continue')?.addEventListener('click', () => {

@@ -33,7 +33,8 @@ function persistProgress() {
     stars: s.stars,
     errors: s.errors,
     rewards: s.rewards,
-    completedLevels: s.completedLevels
+    completedLevels: s.completedLevels,
+    voiceGender: s.voiceGender
   })
 }
 

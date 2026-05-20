@@ -24,6 +24,12 @@ describe('Storage.save e load', () => {
   it('load retorna null quando nao ha save', () => {
     expect(Storage.load()).toBeNull()
   })
+
+  it('salva e carrega preferencia de voz', () => {
+    Storage.save({ stars: {}, errors: {}, rewards: [], completedLevels: [], voiceGender: 'masculina' })
+    const loaded = Storage.load()
+    expect(loaded.voiceGender).toBe('masculina')
+  })
 })
 
 describe('Storage.validate', () => {
