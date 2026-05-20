@@ -7,11 +7,11 @@ import ComponentFactory from '../ui/ComponentFactory.js'
 import { getLevelById } from '../data/levels.js'
 import FeedbackUI from '../ui/FeedbackUI.js'
 
-// Mecânicas importadas dinamicamente no Sprint 4
 import DragDrop from '../mechanics/DragDrop.js'
 import SelectWord from '../mechanics/SelectWord.js'
 import CompleteWord from '../mechanics/CompleteWord.js'
 import MatchPairs from '../mechanics/MatchPairs.js'
+import BuildSentence from '../mechanics/BuildSentence.js'
 
 let currentQuestions = []
 let currentIndex = 0
@@ -21,7 +21,8 @@ const MECHANICS = {
   'drag-category': DragDrop,
   'select-word': SelectWord,
   'complete-word': CompleteWord,
-  'match-pairs': MatchPairs
+  'match-pairs': MatchPairs,
+  'build-sentence': BuildSentence
 }
 
 function render(params = {}) {

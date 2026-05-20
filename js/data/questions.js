@@ -678,11 +678,11 @@ export const questions = [
     id: 'q607', levelId: 6, type: 'complete-word',
     category: 'ortografia_c_s_cedilha',
     instruction: 'Arraste a letra certa para completar a palavra!',
-    wordTemplate: 'bo__e',
+    wordTemplate: 'vo__ê',
     correct: 'c',
     options: ['c', 's', 'ç'],
-    finalWord: 'doce',
-    explanation: 'Antes de E e I, o C já faz o som /s/. Não usa cedilha!'
+    finalWord: 'você',
+    explanation: 'Em "você", o C antes de Ê faz o som /s/. Antes de E e I não precisa de cedilha!'
   },
   {
     id: 'q608', levelId: 6, type: 'complete-word',
@@ -754,11 +754,11 @@ export const questions = [
     id: 'q704', levelId: 7, type: 'complete-word',
     category: 'ortografia_c_s_cedilha',
     instruction: 'Arraste a letra certa para completar a palavra!',
-    wordTemplate: 'abe__a',
+    wordTemplate: 'dan__a',
     correct: 'ç',
     options: ['c', 's', 'ç'],
-    finalWord: 'abelça',
-    explanation: 'Quase! O som /s/ antes de A pede Ç.'
+    finalWord: 'dança',
+    explanation: 'Em "dança", o som /s/ antes de A usa Ç (cedilha)!'
   },
   {
     id: 'q705', levelId: 7, type: 'match-pairs',

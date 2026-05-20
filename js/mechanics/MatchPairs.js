@@ -4,6 +4,7 @@ let totalPairs = 0
 let onAnswerCallback = null
 let currentQuestion = null
 let wrongAttempt = false
+let finished = false
 
 function render(question, container, onAnswer) {
   currentQuestion = question
@@ -11,6 +12,7 @@ function render(question, container, onAnswer) {
   selectedLeft = null
   matchedCount = 0
   wrongAttempt = false
+  finished = false
   totalPairs = question.pairs.length
 
   const lefts = question.pairs.map(p => p.left)
@@ -47,7 +49,7 @@ function render(question, container, onAnswer) {
 }
 
 function handleClick(btn, container, question) {
-  if (btn.classList.contains('matched')) return
+  if (finished || btn.classList.contains('matched')) return
 
   const side = btn.dataset.side
 
@@ -72,6 +74,7 @@ function handleClick(btn, container, question) {
       matchedCount++
 
       if (matchedCount >= totalPairs) {
+        finished = true
         setTimeout(() => onAnswerCallback(!wrongAttempt, question), 400)
       }
     } else {
@@ -84,6 +87,7 @@ function handleClick(btn, container, question) {
       }, 500)
       selectedLeft = null
       wrongAttempt = true
+      finished = true
       onAnswerCallback(false, question)
     }
   }
