@@ -176,37 +176,57 @@
             this.radius = 50;
             this.sliced = false;
             this.emoji = ["🍎", "🍉", "🍍", "🍊", "🍓", "🥝", "🍋"][Math.floor(Math.random()*7)];
-            
+            this.trail = [];
+
             const fatorVel = config.velBase * 0.08;
-            this.gravity = 0.005 + (fatorVel * 0.1); 
-            
+            this.gravity = 0.005 + (fatorVel * 0.1);
+
             const slotWidth = canvas.width / totalSlots;
             this.x = (slotWidth * slotIndex) + (slotWidth / 2);
             this.y = canvas.height + 100;
 
-            const alturaAlvo = canvas.height * 0.88; 
+            const alturaAlvo = canvas.height * 0.88;
             this.vy = -Math.sqrt(2 * this.gravity * alturaAlvo);
             this.vx = (Math.random() - 0.5) * 1.5;
         }
 
         update() {
-            // Aplica escala de tempo se Matrix estiver ativo
             const timeScale = isBulletTime ? 0.15 : 1;
-            
+
+            this.trail.push({ x: this.x, y: this.y });
+            const maxTrail = isBulletTime ? 28 : 5;
+            if (this.trail.length > maxTrail) this.trail.shift();
+
             this.x += this.vx * timeScale;
             this.y += this.vy * timeScale;
             this.vy += this.gravity * timeScale;
-            
+
             if(this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
         }
 
         draw() {
             if(this.sliced) return;
+
+            // Rastro da fruta
+            const len = this.trail.length;
+            for (let i = 1; i < len; i++) {
+                const t = i / len;
+                const alpha = t * (isBulletTime ? 0.7 : 0.35);
+                const size = t * (isBulletTime ? 55 : 30);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = `${size}px Arial`;
+                ctx.fillText(this.emoji, this.trail[i].x, this.trail[i].y);
+                ctx.restore();
+            }
+
             ctx.save();
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.font = "75px Arial";
             ctx.fillText(this.emoji, this.x, this.y);
-            
+
             ctx.font = "bold 34px Arial";
             ctx.fillStyle = "white";
             ctx.strokeStyle = "black";
@@ -233,19 +253,13 @@
     function animate() {
         if(!gameActive) return;
         
-        // Efeito Visual Matrix
-        if(isBulletTime) {
-            ctx.fillStyle = "rgba(0, 20, 0, 0.4)"; // Verde escuro
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Reduz o valor da questão gradualmente
-            if(questionValue > 1) {
-                questionValue -= 0.05;
-                document.getElementById('pts-bonus').innerText = `Vale: ${Math.round(questionValue)} pts`;
-                document.getElementById('pts-bonus').style.color = "var(--danger)";
-            }
-        } else {
-            ctx.fillStyle = "#020617";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#020617";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if(isBulletTime && questionValue > 1) {
+            questionValue -= 0.05;
+            document.getElementById('pts-bonus').innerText = `Vale: ${Math.round(questionValue)} pts`;
+            document.getElementById('pts-bonus').style.color = "var(--danger)";
         }
 
         // Rastro
@@ -270,7 +284,9 @@
                     if(f.isCorrect) {
                         score += Math.round(questionValue);
                         document.getElementById('display-pontos').innerText = score;
-                        flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: canvas.width/2 + 130, targetY: 140 };
+                        const slot = document.getElementById('resultado-slot');
+                        const r = slot.getBoundingClientRect();
+                        flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
                     } else {
                         efeitos.push({x: f.x, y: f.y, r: 10, alpha: 1});
                         config.vidas--;
@@ -292,12 +308,20 @@
 
         // Flying Number
         if(flyingNumber) {
-            flyingNumber.progress += 0.03;
-            let curX = flyingNumber.x + (flyingNumber.targetX - flyingNumber.x) * flyingNumber.progress;
-            let curY = flyingNumber.y + (flyingNumber.targetY - flyingNumber.y) * flyingNumber.progress;
-            ctx.fillStyle = "var(--accent)";
-            ctx.font = "bold 55px Arial";
+            flyingNumber.progress = Math.min(1, flyingNumber.progress + 0.045);
+            const ease = 1 - Math.pow(1 - flyingNumber.progress, 3);
+            const curX = flyingNumber.x + (flyingNumber.targetX - flyingNumber.x) * ease;
+            const curY = flyingNumber.y + (flyingNumber.targetY - flyingNumber.y) * ease;
+            const fontSize = Math.round(70 - 30 * ease);
+            ctx.save();
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.shadowColor = "#f1c40f";
+            ctx.shadowBlur = 24 * (1 - ease);
+            ctx.fillStyle = "#f1c40f";
             ctx.fillText(flyingNumber.val, curX, curY);
+            ctx.restore();
             if(flyingNumber.progress >= 1) {
                 document.getElementById('resultado-slot').innerText = flyingNumber.val;
                 document.getElementById('resultado-slot').style.color = "var(--success)";
