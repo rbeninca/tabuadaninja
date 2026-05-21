@@ -571,6 +571,8 @@
     
     const WORKER_URL = 'https://tabuada-ninja-api.rbeninca.workers.dev';
     const TURMA = new URLSearchParams(location.search).get('turma') || '';
+    const ANIMACAO_PARAM = new URLSearchParams(location.search).get('animacao');
+    const USAR_ANIMACAO_ALTERNATIVA = ANIMACAO_PARAM === '1';
 
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10, tabuadas: [2,3,4,5,6,7,8,9] };
 
@@ -609,13 +611,21 @@
     }
     const _particulas = Array.from({ length: 35 }, () => new Particula());
 
-    function drawFundo() {
-        // Gradiente de fundo
+    function resetParticulas(init = true) {
+        _particulas.forEach(p => p.reset(init));
+    }
+
+    function drawBaseFundo() {
+        // Base de fundo compartilhada
         const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
         bg.addColorStop(0, '#0f172a');
         bg.addColorStop(1, '#020617');
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawFundo() {
+        drawBaseFundo();
         // Partículas
         _particulas.forEach(p => { p.update(); p.draw(); });
         // Vinheta
@@ -627,6 +637,106 @@
         vig.addColorStop(1, 'rgba(2,6,23,0.78)');
         ctx.fillStyle = vig;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawFundoPausaAbertura() {
+        // Fundo escuro com conexões de contas (base da tela de pausa/abertura)
+        drawBaseFundo();
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Atualiza posições com slowdown suavizado
+        pauseItems.forEach(item => {
+            item.x += item.vx * item.slow; item.y += item.vy * item.slow;
+            item.pulse += 0.04;
+            if (item.x < item.r || item.x > canvas.width  - item.r) item.vx *= -1;
+            if (item.y < item.r || item.y > canvas.height - item.r) item.vy *= -1;
+            item.glow = Math.max(0, item.glow - 0.04);
+        });
+
+        // Conta arestas reais (linhas entre pares correspondentes) por bolha
+        const limiar = 200;
+        const arestas = pauseItems.map(() => 0);
+
+        for (let i = 0; i < pauseItems.length; i++) {
+            for (let j = i + 1; j < pauseItems.length; j++) {
+                const a = pauseItems[i], b = pauseItems[j];
+                if (a.res !== b.res || a.isQ === b.isQ) continue;
+                const d = Math.hypot(a.x - b.x, a.y - b.y);
+                if (d >= limiar) continue;
+                const forca = 1 - d / limiar;
+                arestas[i]++;
+                arestas[j]++;
+                a.glow = Math.min(1, a.glow + forca * 0.12);
+                b.glow = Math.min(1, b.glow + forca * 0.12);
+                // Linha na cor do par
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+                ctx.strokeStyle = a.cor + Math.round(forca * 0xb0).toString(16).padStart(2, '0');
+                ctx.lineWidth = 2 + forca * 4;
+                ctx.shadowColor = a.cor; ctx.shadowBlur = 18 * forca;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // Propaga cluster: marca bolhas conectadas a um nó com 2+ arestas
+        const emCluster = pauseItems.map((_, i) => arestas[i] >= 2);
+        for (let i = 0; i < pauseItems.length; i++) {
+            if (!emCluster[i]) continue;
+            for (let j = 0; j < pauseItems.length; j++) {
+                if (i === j || emCluster[j]) continue;
+                const a = pauseItems[i], b = pauseItems[j];
+                if (a.res !== b.res || a.isQ === b.isQ) continue;
+                if (Math.hypot(a.x - b.x, a.y - b.y) < limiar) emCluster[j] = true;
+            }
+        }
+
+        // Aplica cor e desaceleração suave a bolhas em cluster
+        pauseItems.forEach((item, i) => {
+            const alvo = emCluster[i] ? 0.28 : 1;
+            item.slow += (alvo - item.slow) * 0.06;
+            item.activeColor = emCluster[i] ? '#ffffff' : item.cor;
+            if (emCluster[i]) item.glow = Math.min(1, item.glow + 0.09);
+        });
+
+        // Desenha bolhas
+        pauseItems.forEach(item => {
+            const pulse = 1 + Math.sin(item.pulse) * 0.06;
+            const r = item.r * pulse;
+            const cor = item.activeColor || item.cor;
+            ctx.save();
+            if (item.glow > 0) {
+                ctx.shadowColor = cor;
+                ctx.shadowBlur = 35 * item.glow;
+            }
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = item.glow > 0.2
+                ? cor + Math.round((0.28 + item.glow * 0.4) * 0xff).toString(16).padStart(2, '0')
+                : 'rgba(255,255,255,0.18)';
+            ctx.fill();
+            ctx.strokeStyle = cor;
+            ctx.lineWidth = item.glow > 0.2 ? 2 + item.glow * 4 : 2;
+            ctx.globalAlpha = item.glow > 0.2 ? 1 : 0.85;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = `bold ${item.isQ ? 20 : 26}px Arial`;
+            ctx.fillStyle = item.glow > 0.2 ? cor : 'rgba(255,255,255,0.95)';
+            ctx.fillText(item.text, item.x, item.y);
+            ctx.restore();
+        });
+    }
+
+    function drawFundoDoJogo() {
+        // Padrão: partículas matemáticas. Com ?animacao=1 usa a animação alternativa.
+        if (USAR_ANIMACAO_ALTERNATIVA) {
+            drawFundoPausaAbertura();
+            return;
+        }
+        drawFundo();
     }
     // ─────────────────────────────────────────────────────────────────────────
     let tempoInicio = 0;
@@ -990,93 +1100,11 @@
     }
 
     function drawPauseScreen() {
+        if (USAR_ANIMACAO_ALTERNATIVA) {
+            drawFundoPausaAbertura();
+            return;
+        }
         drawFundo();
-        ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Atualiza posições com slowdown suavizado
-        pauseItems.forEach(item => {
-            item.x += item.vx * item.slow; item.y += item.vy * item.slow;
-            item.pulse += 0.04;
-            if (item.x < item.r || item.x > canvas.width  - item.r) item.vx *= -1;
-            if (item.y < item.r || item.y > canvas.height - item.r) item.vy *= -1;
-            item.glow = Math.max(0, item.glow - 0.04);
-        });
-
-        // Conta arestas reais (linhas entre pares correspondentes) por bolha
-        const limiar = 200;
-        const arestas = pauseItems.map(() => 0);
-
-        for (let i = 0; i < pauseItems.length; i++) {
-            for (let j = i + 1; j < pauseItems.length; j++) {
-                const a = pauseItems[i], b = pauseItems[j];
-                if (a.res !== b.res || a.isQ === b.isQ) continue;
-                const d = Math.hypot(a.x - b.x, a.y - b.y);
-                if (d >= limiar) continue;
-                const força = 1 - d / limiar;
-                arestas[i]++;
-                arestas[j]++;
-                a.glow = Math.min(1, a.glow + força * 0.12);
-                b.glow = Math.min(1, b.glow + força * 0.12);
-                // Linha na cor do par
-                ctx.save();
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-                ctx.strokeStyle = a.cor + Math.round(força * 0xb0).toString(16).padStart(2, '0');
-                ctx.lineWidth = 2 + força * 4;
-                ctx.shadowColor = a.cor; ctx.shadowBlur = 18 * força;
-                ctx.stroke();
-                ctx.restore();
-            }
-        }
-
-        // Propaga cluster: marca bolhas conectadas a um nó com 2+ arestas
-        const emCluster = pauseItems.map((_, i) => arestas[i] >= 2);
-        for (let i = 0; i < pauseItems.length; i++) {
-            if (!emCluster[i]) continue;
-            for (let j = 0; j < pauseItems.length; j++) {
-                if (i === j || emCluster[j]) continue;
-                const a = pauseItems[i], b = pauseItems[j];
-                if (a.res !== b.res || a.isQ === b.isQ) continue;
-                if (Math.hypot(a.x - b.x, a.y - b.y) < limiar) emCluster[j] = true;
-            }
-        }
-
-        // Aplica cor e desaceleração suave a bolhas em cluster
-        pauseItems.forEach((item, i) => {
-            const alvo = emCluster[i] ? 0.28 : 1;
-            item.slow += (alvo - item.slow) * 0.06;
-            item.activeColor = emCluster[i] ? '#ffffff' : item.cor;
-            if (emCluster[i]) item.glow = Math.min(1, item.glow + 0.09);
-        });
-
-        // Desenha bolhas
-        pauseItems.forEach(item => {
-            const pulse = 1 + Math.sin(item.pulse) * 0.06;
-            const r = item.r * pulse;
-            const cor = item.activeColor || item.cor;
-            ctx.save();
-            if (item.glow > 0) {
-                ctx.shadowColor = cor;
-                ctx.shadowBlur = 35 * item.glow;
-            }
-            ctx.beginPath();
-            ctx.arc(item.x, item.y, r, 0, Math.PI * 2);
-            ctx.fillStyle = item.glow > 0.2
-                ? cor + Math.round((0.28 + item.glow * 0.4) * 0xff).toString(16).padStart(2, '0')
-                : 'rgba(255,255,255,0.18)';
-            ctx.fill();
-            ctx.strokeStyle = cor;
-            ctx.lineWidth = item.glow > 0.2 ? 2 + item.glow * 4 : 2;
-            ctx.globalAlpha = item.glow > 0.2 ? 1 : 0.85;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.font = `bold ${item.isQ ? 20 : 26}px Arial`;
-            ctx.fillStyle = item.glow > 0.2 ? cor : 'rgba(255,255,255,0.95)';
-            ctx.fillText(item.text, item.x, item.y);
-            ctx.restore();
-        });
     }
 
     function spawnExplosao(x, y) {
@@ -1201,6 +1229,7 @@
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    resetParticulas(true);
 
     rebuildBarraAcertos();
     buildTabsCheckboxes();
@@ -1704,7 +1733,7 @@
             return;
         }
 
-        drawFundo();
+        drawFundoDoJogo();
 
         if(isBulletTime) {
             document.getElementById('pts-bonus').innerText = `Vale: 5 pts (desacelerar)`;
@@ -1890,6 +1919,7 @@
     function redimensionar() {
         canvas.width  = window.innerWidth;
         canvas.height = window.innerHeight;
+        resetParticulas(true);
         if (isStartScreen || isPaused) initPauseItems();
     }
     window.addEventListener('resize', redimensionar);
