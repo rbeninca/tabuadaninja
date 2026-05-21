@@ -1947,8 +1947,18 @@
 
     let _installPrompt = null;
 
+    const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
     function isStandalone() {
         return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function getInstallHintText() {
+        if (IS_IOS && IS_SAFARI) {
+            return 'ℹ iPhone: Compartilhar -> Adicionar a Tela de Inicio';
+        }
+        return 'ℹ Use o menu do navegador: Instalar app';
     }
 
     function atualizarVisibilidadeInstalar() {
@@ -1978,7 +1988,7 @@
     });
     async function instalarApp() {
         if (!_installPrompt) {
-            document.getElementById('pwa-debug').textContent = 'ℹ Use o menu do navegador: Instalar app';
+            document.getElementById('pwa-debug').textContent = getInstallHintText();
             return;
         }
         _installPrompt.prompt();
@@ -1992,14 +2002,17 @@
     const _dbg = document.getElementById('pwa-debug');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration('./sw.js').then(reg => {
-            _dbg.textContent = reg ? '⏳ SW ok, aguardando prompt...' : '❌ SW não registrado';
+            _dbg.textContent = reg ? '⏳ SW ok' : '❌ SW não registrado';
+            if (reg && !_installPrompt && !isStandalone()) {
+                _dbg.textContent += ' · ' + getInstallHintText();
+            }
         });
     } else {
         _dbg.textContent = '❌ SW não suportado';
     }
     atualizarVisibilidadeInstalar();
     setTimeout(() => {
-        if (!_installPrompt) _dbg.textContent += ' (prompt não veio em 5s)';
+        if (!_installPrompt && !isStandalone()) _dbg.textContent = getInstallHintText();
     }, 5000);
 
 </script>
