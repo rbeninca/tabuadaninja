@@ -504,6 +504,7 @@
     <div id="matrix-btn" style="display: none;">⌛</div>
     <div id="fullscreen-btn" onclick="pedirTelaCheia()" title="Tela cheia">⛶</div>
     <button id="install-btn" onclick="instalarApp()">📲 Instalar app</button>
+    <div id="pwa-debug" style="position:fixed;bottom:60px;left:12px;font-size:11px;color:rgba(255,255,255,0.5);z-index:999;max-width:200px;"></div>
     <button id="turma-btn" onclick="abrirModalTurma()">🔗 Link de turma</button>
 
     <div id="turma-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(2,6,23,0.92);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
@@ -1863,10 +1864,12 @@
         e.preventDefault();
         _installPrompt = e;
         document.getElementById('install-btn').style.display = '';
+        document.getElementById('pwa-debug').textContent = '✅ pronto para instalar';
     });
     window.addEventListener('appinstalled', () => {
         _installPrompt = null;
         document.getElementById('install-btn').style.display = 'none';
+        document.getElementById('pwa-debug').textContent = '✅ instalado';
     });
     async function instalarApp() {
         if (!_installPrompt) return;
@@ -1877,6 +1880,18 @@
             document.getElementById('install-btn').style.display = 'none';
         }
     }
+    // diagnóstico temporário
+    const _dbg = document.getElementById('pwa-debug');
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration('./sw.js').then(reg => {
+            _dbg.textContent = reg ? '⏳ SW ok, aguardando prompt...' : '❌ SW não registrado';
+        });
+    } else {
+        _dbg.textContent = '❌ SW não suportado';
+    }
+    setTimeout(() => {
+        if (!_installPrompt) _dbg.textContent += ' (prompt não veio em 5s)';
+    }, 5000);
 
 </script>
 
