@@ -504,7 +504,7 @@
                     </table>
                 </div>
             </div>
-            <button onclick="location.reload()">RECOMEÇAR</button>
+            <button id="btn-recomecar" onclick="location.reload()" disabled style="opacity:0.35;cursor:not-allowed;">RECOMEÇAR</button>
         </div>
     </div>
 
@@ -1077,7 +1077,9 @@
         // Segunda barreira: descarta registros de turma errada antes de cachear
         if (TURMA) novos = novos.filter(r => r.turma === TURMA);
 
-        const merged = cache ? [...cache.records, ...novos] : novos;
+        // Para turma: substitui cache (servidor sempre devolve tudo, sem since).
+        // Para global: acumula incrementalmente.
+        const merged = (TURMA || !cache) ? novos : [...cache.records, ...novos];
         // Deduplica por timestamp — evita duplicatas caso o mesmo registro seja buscado mais de uma vez
         const seen = new Set();
         const todos = merged.filter(r => {
@@ -1120,6 +1122,11 @@
         const records = await sincronizarRanking(true);
         renderRanking(records, 'ranking-body', { nome: novoNome, pontuacao: score });
         document.getElementById('ranking-section').style.display = 'block';
+
+        const btnRec = document.getElementById('btn-recomecar');
+        btnRec.disabled = false;
+        btnRec.style.opacity = '';
+        btnRec.style.cursor = '';
     }
 
     async function submitScore(apenasEnviar = false) {

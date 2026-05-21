@@ -57,10 +57,13 @@ async function handleSaveScore(request, env) {
   return json({ ok: true });
 }
 
-// Retorna apenas o timestamp do registro mais recente — 1 leitura no Firestore.
-// Com ?turma=X filtra pelo turma (requer índice composto turma + data).
+// Retorna o timestamp do registro mais recente — 1 leitura no Firestore.
+// Turma: retorna null (sem orderBy não há índice; cliente sempre busca todos os docs da turma).
+// Global: orderBy data DESC, retorna o mais recente para invalidação de cache incremental.
 async function handleLastUpdate(url, env) {
   const turma = url.searchParams.get('turma') || '';
+
+  if (turma) return json({ updatedAt: null });
 
   const structured = {
     from: [{ collectionId: 'scores' }],
@@ -68,12 +71,6 @@ async function handleLastUpdate(url, env) {
     limit: 1,
     select: { fields: [{ fieldPath: 'data' }] },
   };
-
-  if (turma) {
-    structured.where = {
-      fieldFilter: { field: { fieldPath: 'turma' }, op: 'EQUAL', value: { stringValue: turma } },
-    };
-  }
 
   const resp = await firestoreQuery(env, { structuredQuery: structured });
   if (!resp.ok) return json({ updatedAt: null });
@@ -92,32 +89,28 @@ async function handleRanking(url, env) {
   const since = url.searchParams.get('since');
   const turma = url.searchParams.get('turma') || '';
 
-  const structured = {
-    from: [{ collectionId: 'scores' }],
-    orderBy: [{ field: { fieldPath: 'data' }, direction: 'ASCENDING' }],
-  };
+  const structured = { from: [{ collectionId: 'scores' }] };
 
-  const filters = [];
   if (turma) {
-    filters.push({
+    // Sem orderBy: usa apenas o índice de campo único em "turma" (automático).
+    // O "since" é ignorado para turma — o cliente faz merge/dedup.
+    structured.where = {
       fieldFilter: { field: { fieldPath: 'turma' }, op: 'EQUAL', value: { stringValue: turma } },
-    });
-  }
-  if (since) {
-    filters.push({
-      fieldFilter: { field: { fieldPath: 'data' }, op: 'GREATER_THAN', value: { timestampValue: since } },
-    });
-  }
-
-  if (filters.length === 1) {
-    structured.where = filters[0];
-  } else if (filters.length > 1) {
-    structured.where = { compositeFilter: { op: 'AND', filters } };
+    };
+  } else {
+    // Ranking global: orderBy data ASC + filtro since opcional
+    structured.orderBy = [{ field: { fieldPath: 'data' }, direction: 'ASCENDING' }];
+    if (since) {
+      structured.where = {
+        fieldFilter: { field: { fieldPath: 'data' }, op: 'GREATER_THAN', value: { timestampValue: since } },
+      };
+    }
   }
 
   const resp = await firestoreQuery(env, { structuredQuery: structured });
   if (!resp.ok) {
-    return json({ error: 'Erro ao buscar ranking' }, 502);
+    const detail = await resp.text();
+    return json({ error: 'Erro ao buscar ranking', detail }, 502);
   }
 
   const data = await resp.json();
