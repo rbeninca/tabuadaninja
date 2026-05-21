@@ -159,6 +159,40 @@
             border-color: #e74c3c; box-shadow: 0 0 20px rgba(231,76,60,0.4);
         }
         @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes milestoneIn {
+            0%   { opacity:0; transform: scale(0.4) translateY(40px); }
+            18%  { opacity:1; transform: scale(1.12) translateY(0); }
+            30%  { transform: scale(1); }
+            70%  { opacity:1; transform: scale(1); }
+            100% { opacity:0; transform: scale(1.1) translateY(-20px); }
+        }
+        @keyframes milestoneShake {
+            0%,100%{ transform: rotate(0deg); }
+            20%    { transform: rotate(-4deg); }
+            40%    { transform: rotate(4deg); }
+            60%    { transform: rotate(-3deg); }
+            80%    { transform: rotate(3deg); }
+        }
+        #milestone-overlay {
+            position: absolute; inset: 0; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: none; z-index: 60;
+        }
+        .milestone-texto {
+            font-size: clamp(3.5rem, 14vw, 8rem); font-weight: 900;
+            color: #f1c40f; letter-spacing: 4px;
+            text-shadow: 0 0 30px #f1c40f, 0 0 60px rgba(241,196,15,0.6), 0 4px 8px rgba(0,0,0,0.8);
+            animation: milestoneIn 2.8s forwards, milestoneShake 0.4s 0.18s 2;
+        }
+        .milestone-sub {
+            font-size: clamp(1rem, 3.5vw, 1.6rem); color: rgba(255,255,255,0.9);
+            letter-spacing: 3px; margin-top: 0.4em; text-transform: uppercase;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        }
+        .milestone-streak {
+            font-size: clamp(0.8rem, 2.5vw, 1.1rem); color: rgba(255,255,255,0.55);
+            letter-spacing: 2px; margin-top: 0.3em;
+        }
         #confirm-menu {
             margin-top: 20px; background: rgba(0,0,0,0.7); border-radius: 16px;
             padding: 20px 30px; border: 1px solid rgba(231,76,60,0.5);
@@ -188,6 +222,37 @@
             #btn-continuar { min-width: 170px; padding: 14px 28px; }
             #btn-menu { min-width: 170px; }
         }
+
+        /* Segmented progress bar */
+        #barra-acertos {
+            display: inline-flex; gap: 4px; align-items: center;
+            margin-left: 8px; vertical-align: middle;
+        }
+        .barra-seg {
+            width: 16px; height: 9px; border-radius: 3px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+        @media (max-width: 480px) {
+            .barra-seg { width: 12px; height: 7px; }
+            #barra-acertos { gap: 3px; }
+        }
+        /* Pill toggle for config */
+        .toggle-group {
+            display: flex; border-radius: 12px; overflow: hidden;
+            border: 1px solid #334155;
+        }
+        .toggle-opt {
+            flex: 1; padding: 10px 8px; background: transparent;
+            color: rgba(255,255,255,0.45); border: none; cursor: pointer;
+            font-size: 15px; font-family: inherit; font-weight: 600;
+            transition: all 0.18s;
+        }
+        .toggle-opt.active {
+            background: var(--primary); color: white;
+        }
+        .toggle-opt:not(.active):hover { background: rgba(255,255,255,0.06); }
 
         @keyframes vidaDano {
             0%   { transform: scale(1);    color: inherit; }
@@ -222,11 +287,18 @@
             </div>
             <div class="field">
                 <label>Vidas:</label>
-                <input type="number" id="vidas-input" value="3">
+                <input type="number" id="vidas-input" value="10" min="1" max="30">
             </div>
             <div class="field">
                 <label>Velocidade (1-10):</label>
                 <input type="range" id="vel-slider" min="1" max="10" value="2" style="width:100%">
+            </div>
+            <div class="field">
+                <label>Acertos para ganhar vida:</label>
+                <div class="toggle-group" id="meta-toggle">
+                    <button class="toggle-opt active" data-val="5" onclick="selectMeta(this)">🎁 5 acertos</button>
+                    <button class="toggle-opt" data-val="10" onclick="selectMeta(this)">🎁 10 acertos</button>
+                </div>
             </div>
             <div class="field">
                 <label>Modo de Jogo:</label>
@@ -251,7 +323,7 @@
 
     <div id="game-ui" style="display: none;">
         <div>👤 <span id="display-nome"></span><button id="pause-btn" onclick="togglePause()">⏸</button></div>
-        <div style="color: var(--danger);">❤️ <span id="display-vidas"></span></div>
+        <div style="color: var(--danger);">❤️ <span id="display-vidas"></span><div id="barra-acertos"><div class="barra-seg" id="barra-seg-0"></div><div class="barra-seg" id="barra-seg-1"></div><div class="barra-seg" id="barra-seg-2"></div><div class="barra-seg" id="barra-seg-3"></div><div class="barra-seg" id="barra-seg-4"></div></div></div>
         <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
     </div>
     <div id="pause-overlay" style="display:none;">
@@ -266,6 +338,12 @@
                 <button class="btn-nao" onclick="cancelarMenu()">Cancelar</button>
             </div>
         </div>
+    </div>
+
+    <div id="milestone-overlay">
+        <div class="milestone-texto" id="milestone-texto"></div>
+        <div class="milestone-sub" id="milestone-sub"></div>
+        <div class="milestone-streak" id="milestone-streak"></div>
     </div>
 
     <div id="pergunta-container" style="display: none;">
@@ -291,11 +369,21 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    let config = { nome: "", vidas: 3, velBase: 2, modoInvertido: 'misto' };
+    let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'misto', metaAcertos: 5 };
     let score = 0;
     let gameActive = false;
     let isBulletTime = false;
     let questionValue = 10;
+    let acertosSeguidos = 0;
+    let milestoneCount = 0;
+    let usouDesaceleracao = false;
+    let relancamentos = 0;
+    let confetti = [];
+    const coresMilestone = [
+        '#2ecc71','#a8e063','#f1c40f','#e67e22',
+        '#e74c3c','#c0392b','#9b59b6','#8e44ad',
+        '#3498db','#00e5ff','#ffffff'
+    ];
     
     let isPaused = false;
     let isStartScreen = true;
@@ -417,10 +505,39 @@
         document.getElementById('confirm-menu').style.display = 'none';
     }
 
+    function selectMeta(btn) {
+        document.querySelectorAll('#meta-toggle .toggle-opt').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function updateBarraAcertos(flash = false) {
+        const meta = config.metaAcertos;
+        const cor = coresMilestone[milestoneCount % coresMilestone.length];
+        const filled = flash ? 5 : Math.floor((acertosSeguidos % meta) * 5 / meta);
+        for (let i = 0; i < 5; i++) {
+            const seg = document.getElementById(`barra-seg-${i}`);
+            if (!seg) continue;
+            if (i < filled) {
+                seg.style.background = cor;
+                seg.style.boxShadow = `0 0 7px ${cor}`;
+                seg.style.borderColor = cor;
+            } else {
+                seg.style.background = 'rgba(255,255,255,0.08)';
+                seg.style.boxShadow = 'none';
+                seg.style.borderColor = 'rgba(255,255,255,0.15)';
+            }
+        }
+    }
+
     function confirmarMenu() {
         gameActive = false;
         isPaused = false;
         score = 0;
+        acertosSeguidos = 0;
+        milestoneCount = 0;
+        usouDesaceleracao = false;
+        relancamentos = 0;
+        confetti = [];
         frutas = []; fragmentos = []; explosoes = []; efeitos = [];
         document.getElementById('pause-overlay').style.display = 'none';
         document.getElementById('game-ui').style.display = 'none';
@@ -428,6 +545,7 @@
         document.getElementById('matrix-btn').style.display = 'none';
         document.getElementById('pause-btn').textContent = '⏸';
         document.getElementById('display-pontos').innerText = '0';
+        updateBarraAcertos();
         document.getElementById('menu-inicial').style.display = 'flex';
         isStartScreen = true;
         initPauseItems();
@@ -572,6 +690,62 @@
         }
     }
 
+    function spawnConfetti(ganho, originX, originY) {
+        const cores = ['#f1c40f','#e74c3c','#2ecc71','#3498db','#9b59b6','#e67e22','#1abc9c','#f06292','#ff5722','#ffeb3b','#ffffff','#00e5ff'];
+        const quantidade = Math.min(70 + ganho * 40, 200);
+        const cx = originX ?? canvas.width / 2;
+        const cy = originY ?? canvas.height * 0.4;
+        for (let i = 0; i < quantidade; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 4 + Math.random() * 10 + ganho * 1.5;
+            confetti.push({
+                x: cx + (Math.random() - 0.5) * 80,
+                y: cy + (Math.random() - 0.5) * 40,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd - 7,
+                rot: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.35,
+                color: cores[Math.floor(Math.random() * cores.length)],
+                size: 5 + Math.random() * 9 + ganho * 0.5,
+                alpha: 1,
+                circle: Math.random() < 0.4,
+                glow: ganho > 1
+            });
+        }
+    }
+
+    function mostrarMilestone(ganho) {
+        const overlay = document.getElementById('milestone-overlay');
+        document.getElementById('milestone-texto').textContent = ganho === 1 ? '+1 VIDA!' : `+${ganho} VIDAS!`;
+        document.getElementById('milestone-sub').textContent =
+            ganho === 1 ? `✨ ${config.metaAcertos} acertos seguidos!` : `🔥 ${acertosSeguidos} acertos! Bônus x${ganho}!`;
+        document.getElementById('milestone-streak').textContent =
+            milestoneCount > 1 ? `${milestoneCount}ª sequência — próximo bônus: +${Math.pow(2, milestoneCount)} vidas!` : '';
+        overlay.style.display = 'flex';
+        const txt = document.getElementById('milestone-texto');
+        txt.style.animation = 'none';
+        void txt.offsetWidth;
+        txt.style.animation = 'milestoneIn 2.8s forwards, milestoneShake 0.4s 0.18s 2';
+        setTimeout(() => { overlay.style.display = 'none'; }, 2900);
+    }
+
+    function playMilestoneSound() {
+        const ac = getAudio();
+        const now = ac.currentTime;
+        // Fanfare ascendente com timbre mais rico
+        [[523,0],[659,0.12],[784,0.24],[1047,0.36],[1319,0.5],[1568,0.62]].forEach(([freq, dt]) => {
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.connect(gain); gain.connect(ac.destination);
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, now + dt);
+            gain.gain.linearRampToValueAtTime(0.28, now + dt + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dt + 0.35);
+            osc.start(now + dt); osc.stop(now + dt + 0.4);
+        });
+    }
+
     function animarDanoVida() {
         const el = document.getElementById('display-vidas');
         el.classList.remove('vida-dano');
@@ -622,6 +796,8 @@
         config.vidas = parseInt(document.getElementById('vidas-input').value);
         config.velBase = parseInt(document.getElementById('vel-slider').value);
         config.modoInvertido = document.getElementById('modo-select').value;
+        const metaBtn = document.querySelector('#meta-toggle .toggle-opt.active');
+        config.metaAcertos = metaBtn ? parseInt(metaBtn.dataset.val) : 5;
 
         document.getElementById('menu-inicial').style.display = 'none';
         document.getElementById('game-ui').style.display = 'flex';
@@ -631,6 +807,14 @@
         document.getElementById('display-nome').innerText = config.nome;
         document.getElementById('display-vidas').innerText = config.vidas;
 
+        acertosSeguidos = 0;
+        milestoneCount = 0;
+        usouDesaceleracao = false;
+        relancamentos = 0;
+        confetti = [];
+        score = 0;
+        document.getElementById('display-pontos').innerText = '0';
+        updateBarraAcertos();
         pedirTelaCheia();
         isStartScreen = false;
         gameActive = true;
@@ -648,6 +832,8 @@
             ? false
             : Math.random() < 0.5;
         questionValue = 10;
+        usouDesaceleracao = false;
+        relancamentos = 0;
 
         const slot = document.getElementById('resultado-slot');
         slot.innerText = "?";
@@ -780,9 +966,11 @@
         ctx.fillStyle = "#020617";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        if(isBulletTime && questionValue > 1) {
-            questionValue -= 0.05;
-            document.getElementById('pts-bonus').innerText = `Vale: ${Math.round(questionValue)} pts`;
+        if(isBulletTime) {
+            document.getElementById('pts-bonus').innerText = `Vale: 5 pts (desacelerar)`;
+            document.getElementById('pts-bonus').style.color = "var(--danger)";
+        } else if (usouDesaceleracao) {
+            document.getElementById('pts-bonus').innerText = `Vale: 5 pts`;
             document.getElementById('pts-bonus').style.color = "var(--danger)";
         }
 
@@ -806,8 +994,28 @@
                 if(d < 55 && !f.sliced) {
                     f.sliced = true;
                     if(f.isCorrect) {
-                        score += Math.round(questionValue);
+                        const baseMax = usouDesaceleracao ? 5 : 10;
+                        const pts = relancamentos === 0 ? baseMax
+                                  : relancamentos === 1 ? Math.max(baseMax - 3, 0)
+                                  : 0;
+                        score += pts;
                         document.getElementById('display-pontos').innerText = score;
+                        if (relancamentos < 2) {
+                            acertosSeguidos++;
+                            if (acertosSeguidos % config.metaAcertos === 0) {
+                                updateBarraAcertos(true);
+                                milestoneCount++;
+                                const ganho = Math.pow(2, milestoneCount - 1);
+                                config.vidas += ganho;
+                                document.getElementById('display-vidas').innerText = config.vidas;
+                                setTimeout(() => updateBarraAcertos(), 550);
+                                spawnConfetti(ganho, f.x, f.y);
+                                mostrarMilestone(ganho);
+                                playMilestoneSound();
+                            } else {
+                                updateBarraAcertos();
+                            }
+                        }
                         spawnFragmentos(f.x, f.y, f.emoji);
                         playSuccessSound();
                         const slot = document.getElementById('resultado-slot');
@@ -816,6 +1024,9 @@
                     } else {
                         playErrorSound();
                         spawnExplosao(f.x, f.y);
+                        acertosSeguidos = 0;
+                        milestoneCount = 0;
+                        updateBarraAcertos();
                         config.vidas--;
                         document.getElementById('display-vidas').innerText = config.vidas;
                         animarDanoVida();
@@ -830,7 +1041,19 @@
 
             if(f.y > canvas.height + 300) {
                 frutas.splice(i, 1);
-                if(frutas.length === 0 && !flyingNumber) spawnFrutas();
+                if(frutas.length === 0 && !flyingNumber) {
+                    relancamentos++;
+                    const ptsBon = document.getElementById('pts-bonus');
+                    if (relancamentos >= 2) {
+                        ptsBon.innerText = 'Vale: 0 pts';
+                        ptsBon.style.color = 'var(--danger)';
+                    } else {
+                        const baseRel = usouDesaceleracao ? 2 : 7;
+                        ptsBon.innerText = `Vale: ${baseRel} pts (${relancamentos}º relançamento)`;
+                        ptsBon.style.color = 'var(--danger)';
+                    }
+                    spawnFrutas();
+                }
             }
         }
 
@@ -867,6 +1090,30 @@
             ctx.restore();
         }
 
+        // Confetti / Purpurina
+        for (let i = confetti.length - 1; i >= 0; i--) {
+            const p = confetti[i];
+            p.x += p.vx; p.y += p.vy;
+            p.vy += 0.28; p.vx *= 0.995;
+            p.rot += p.rotSpeed;
+            p.alpha -= 0.011;
+            if (p.alpha <= 0) { confetti.splice(i, 1); continue; }
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            if (p.glow) { ctx.shadowColor = p.color; ctx.shadowBlur = 14; }
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            if (p.circle) {
+                ctx.beginPath();
+                ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillRect(-p.size * 0.5, -p.size * 0.3, p.size, p.size * 0.6);
+            }
+            ctx.restore();
+        }
+
         // Flying Number
         if(flyingNumber) {
             flyingNumber.progress = Math.min(1, flyingNumber.progress + 0.045);
@@ -897,14 +1144,14 @@
 
     // Input Listeners
     window.addEventListener('keydown', e => {
-        if(e.code === 'Space') isBulletTime = true;
+        if(e.code === 'Space') { isBulletTime = true; usouDesaceleracao = true; }
         if(e.code === 'KeyP') togglePause();
     });
     window.addEventListener('keyup', e => { if(e.code === 'Space') isBulletTime = false; });
 
     // Mobile Matrix Button
     const matrixBtn = document.getElementById('matrix-btn');
-    matrixBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isBulletTime = true; });
+    matrixBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isBulletTime = true; usouDesaceleracao = true; });
     matrixBtn.addEventListener('touchend', () => { isBulletTime = false; });
 
     const handleMove = (x, y) => { if(gameActive) rastro.push({x, y}); };
