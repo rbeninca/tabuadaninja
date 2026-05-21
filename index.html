@@ -648,7 +648,7 @@
             '#cddc39','#795548','#f06292'
         ];
         //Controle número de particulas no pause. 
-        const pares = Math.max(5, Math.min(28, Math.round(canvas.width * canvas.height / 7000)));
+        var pares = Math.max(4, Math.min(18, Math.round(canvas.width * canvas.height )));
         for (let i = 0; i < pares; i++) {
             const n1 = Math.floor(Math.random() * 8) + 2;
             const n2 = Math.floor(Math.random() * 8) + 2;
