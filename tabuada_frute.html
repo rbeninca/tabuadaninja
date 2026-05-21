@@ -1,12 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ninja da Tabuada - Master Edition</title>
+    <title>Ninja da Tabuada - Matrix Edition</title>
     <style>
-        :root { --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; --accent: #f1c40f; }
+        :root { --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; --accent: #f1c40f; --matrix: #00ff41; }
         body { margin: 0; overflow: hidden; background: #020617; font-family: 'Segoe UI', Arial, sans-serif; touch-action: none; color: white; }
         canvas { display: block; }
 
@@ -22,64 +21,76 @@
             box-shadow: 0 0 40px rgba(52, 152, 219, 0.2);
         }
 
-        h1 { color: var(--accent); margin-top: 0; font-size: 2.8rem; text-shadow: 3px 3px 0px #000; letter-spacing: 2px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; color: #94a3b8; text-transform: uppercase; font-size: 12px; }
+        h1 { color: var(--accent); margin-top: 0; font-size: 2.8rem; text-shadow: 3px 3px 0px #000; }
         
-        .field { margin-bottom: 25px; text-align: left; }
+        .field { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #94a3b8; font-size: 12px; }
+        
         input[type="text"], input[type="number"] {
             width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #334155; 
             background: #0f172a; color: white; font-size: 18px; box-sizing: border-box;
         }
 
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); height: 25px; }
-
         button {
             width: 100%; padding: 18px; background: var(--success); color: white;
             border: none; border-radius: 12px; font-size: 22px; font-weight: bold;
-            cursor: pointer; transition: 0.3s; text-transform: uppercase;
+            cursor: pointer; transition: 0.3s;
         }
-        button:hover { background: #27ae60; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
 
         #game-ui {
             position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;
             display: flex; justify-content: space-between; padding: 25px; box-sizing: border-box;
-            font-size: 22px; font-weight: bold; text-shadow: 2px 2px 4px #000; z-index: 10;
+            font-size: 20px; font-weight: bold; z-index: 10;
         }
 
         #pergunta-container {
             position: absolute; top: 100px; width: 100%; text-align: center; pointer-events: none; z-index: 5;
         }
         #pergunta {
-            font-size: 70px; font-weight: 900; background: rgba(15, 23, 42, 0.6);
+            font-size: 70px; font-weight: 900; background: rgba(15, 23, 42, 0.8);
             padding: 15px 45px; border-radius: 60px; border: 3px solid var(--accent);
-            display: inline-block; box-shadow: 0 0 30px rgba(241, 196, 15, 0.2);
+            display: inline-block; transition: 0.3s;
         }
+
+        /* Indicador de Pontos da Questão */
+        #pts-bonus {
+            position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%);
+            font-size: 20px; color: var(--success);
+        }
+
+        /* Botão Matrix Mobile */
+        #matrix-btn {
+            position: absolute; bottom: 30px; right: 30px; width: 80px; height: 80px;
+            background: rgba(0, 255, 65, 0.2); border: 3px solid var(--matrix);
+            border-radius: 50%; color: var(--matrix); font-size: 30px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 1000; user-select: none;
+        }
+        #matrix-btn:active { background: var(--matrix); color: black; }
     </style>
 </head>
 <body>
 
-    <!-- MENU INICIAL -->
     <div id="menu-inicial" class="overlay">
         <div class="card">
             <h1>TABUADA NINJA</h1>
             <div class="field">
                 <label>Nome do Aluno:</label>
-                <input type="text" id="nome-input" value="Ninja Aprendiz">
+                <input type="text" id="nome-input" value="Ninja">
             </div>
             <div class="field">
-                <label>Número de Vidas:</label>
-                <input type="number" id="vidas-input" value="3" min="1">
+                <label>Vidas:</label>
+                <input type="number" id="vidas-input" value="3">
             </div>
             <div class="field">
-                <label>Velocidade do Voo:</label>
-                <input type="range" id="vel-slider" min="1" max="10" value="2">
-                <div id="vel-label" style="text-align: center; color: var(--accent); margin-top: 10px; font-weight: bold;">Lento</div>
+                <label>Velocidade (1-10):</label>
+                <input type="range" id="vel-slider" min="1" max="10" value="2" style="width:100%">
             </div>
-            <button onclick="startGame()">Começar Treino</button>
+            <p style="font-size: 14px; color: #888;">Dica: Segure ESPAÇO para Câmera Lenta!</p>
+            <button onclick="startGame()">Começar</button>
         </div>
     </div>
 
-    <!-- UI DO JOGO -->
     <div id="game-ui" style="display: none;">
         <div>👤 <span id="display-nome"></span></div>
         <div style="color: var(--danger);">❤️ <span id="display-vidas"></span></div>
@@ -89,15 +100,17 @@
     <div id="pergunta-container" style="display: none;">
         <div id="pergunta">
             <span id="conta"></span><span id="resultado-slot" style="color: var(--accent);">?</span>
+            <div id="pts-bonus">Vale: 10 pts</div>
         </div>
     </div>
 
-    <!-- GAME OVER -->
+    <div id="matrix-btn" style="display: none;">⌛</div>
+
     <div id="game-over" class="overlay" style="display: none;">
         <div class="card">
-            <h1 style="color: var(--danger);">FIM DO TREINO</h1>
-            <p id="resumo-final" style="font-size: 24px; margin: 20px 0;"></p>
-            <button onclick="location.reload()" style="background: var(--primary);">TENTAR NOVAMENTE</button>
+            <h1 style="color: var(--danger);">FIM DE JOGO</h1>
+            <p id="resumo-final" style="font-size: 24px;"></p>
+            <button onclick="location.reload()">RECOMEÇAR</button>
         </div>
     </div>
 
@@ -110,6 +123,9 @@
     let config = { nome: "", vidas: 3, velBase: 2 };
     let score = 0;
     let gameActive = false;
+    let isBulletTime = false;
+    let questionValue = 10;
+    
     let frutas = [];
     let fragmentos = [];
     let efeitos = [];
@@ -120,11 +136,6 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    document.getElementById('vel-slider').oninput = function() {
-        const labels = ["Quase Parado", "Muito Lento", "Lento", "Tranquilo", "Normal", "Ninja", "Rápido", "Veloz", "Mestre", "Relâmpago"];
-        document.getElementById('vel-label').innerText = labels[this.value - 1];
-    };
-
     function startGame() {
         config.nome = document.getElementById('nome-input').value;
         config.vidas = parseInt(document.getElementById('vidas-input').value);
@@ -133,6 +144,7 @@
         document.getElementById('menu-inicial').style.display = 'none';
         document.getElementById('game-ui').style.display = 'flex';
         document.getElementById('pergunta-container').style.display = 'block';
+        document.getElementById('matrix-btn').style.display = 'flex';
         
         document.getElementById('display-nome').innerText = config.nome;
         document.getElementById('display-vidas').innerText = config.vidas;
@@ -146,10 +158,13 @@
         atualPergunta.n1 = Math.floor(Math.random() * 8) + 2;
         atualPergunta.n2 = Math.floor(Math.random() * 8) + 2;
         atualPergunta.res = atualPergunta.n1 * atualPergunta.n2;
+        questionValue = 10;
         
         document.getElementById('conta').innerText = `${atualPergunta.n1} x ${atualPergunta.n2} = `;
         document.getElementById('resultado-slot').innerText = "?";
         document.getElementById('resultado-slot').style.color = "var(--accent)";
+        document.getElementById('pts-bonus').innerText = "Vale: 10 pts";
+        document.getElementById('pts-bonus').style.color = "var(--success)";
         
         spawnFrutas();
     }
@@ -160,37 +175,35 @@
             this.isCorrect = isCorrect;
             this.radius = 50;
             this.sliced = false;
-            this.emoji = ["🍎", "🍉", "🍍", "🍊", "🍓", "🥝", "🫐", "🍋"][Math.floor(Math.random()*8)];
+            this.emoji = ["🍎", "🍉", "🍍", "🍊", "🍓", "🥝", "🍋"][Math.floor(Math.random()*7)];
             
-            // FÍSICA AJUSTADA
             const fatorVel = config.velBase * 0.08;
             this.gravity = 0.005 + (fatorVel * 0.1); 
             
-            // DISTRIBUIÇÃO EM SLOTS PARA NÃO BATER
             const slotWidth = canvas.width / totalSlots;
             this.x = (slotWidth * slotIndex) + (slotWidth / 2);
             this.y = canvas.height + 100;
 
-            // Pulo para chegar quase no topo (90% da tela)
             const alturaAlvo = canvas.height * 0.88; 
             this.vy = -Math.sqrt(2 * this.gravity * alturaAlvo);
-            this.vx = (Math.random() - 0.5) * 1.5; // Leve balanço lateral
+            this.vx = (Math.random() - 0.5) * 1.5;
         }
 
         update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += this.gravity;
+            // Aplica escala de tempo se Matrix estiver ativo
+            const timeScale = isBulletTime ? 0.15 : 1;
+            
+            this.x += this.vx * timeScale;
+            this.y += this.vy * timeScale;
+            this.vy += this.gravity * timeScale;
+            
             if(this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
         }
 
         draw() {
             if(this.sliced) return;
             ctx.save();
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.shadowBlur = 15; ctx.shadowColor = "rgba(0,0,0,0.5)";
-            
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.font = "75px Arial";
             ctx.fillText(this.emoji, this.x, this.y);
             
@@ -206,72 +219,45 @@
 
     function spawnFrutas() {
         frutas = [];
-        const numTotal = 5; // Mais frutas na tela
+        const numTotal = 5;
         let respostas = [atualPergunta.res];
         
-        // Gerar respostas erradas inteligentes
         while(respostas.length < numTotal) {
-            let erro;
-            const r = Math.random();
-            if(r < 0.3) erro = atualPergunta.res + (Math.floor(Math.random()*5)+1);
-            else if(r < 0.6) erro = atualPergunta.res - (Math.floor(Math.random()*5)+1);
-            else erro = (atualPergunta.n1 + 1) * atualPergunta.n2; // Pegadinha de tabuada próxima
-            
+            let erro = atualPergunta.res + (Math.floor(Math.random()*15)-7);
             if(!respostas.includes(erro) && erro > 0) respostas.push(erro);
         }
-
-        // Embaralhar respostas
         respostas.sort(() => Math.random() - 0.5);
-
-        // Criar frutas nos seus devidos slots
-        respostas.forEach((valor, index) => {
-            frutas.push(new Fruta(valor, valor === atualPergunta.res, index, numTotal));
-        });
-    }
-
-    function triggerSuccess(f) {
-        score += 10;
-        document.getElementById('display-pontos').innerText = score;
-        flyingNumber = {
-            x: f.x, y: f.y, val: f.valor, progress: 0,
-            targetX: canvas.width/2 + 130, targetY: 140
-        };
-    }
-
-    function triggerExplosion(x, y) {
-        efeitos.push({x, y, r: 10, alpha: 1});
-        config.vidas--;
-        document.getElementById('display-vidas').innerText = config.vidas;
-        if(config.vidas <= 0) {
-            gameActive = false;
-            document.getElementById('game-over').style.display = 'flex';
-            document.getElementById('resumo-final').innerText = `${config.nome}, você conquistou ${score} pontos!`;
-        }
+        respostas.forEach((v, i) => frutas.push(new Fruta(v, v === atualPergunta.res, i, numTotal)));
     }
 
     function animate() {
         if(!gameActive) return;
         
-        // Fundo com gradiente suave
-        let grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        grd.addColorStop(0, "#020617");
-        grd.addColorStop(1, "#0f172a");
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Efeito Visual Matrix
+        if(isBulletTime) {
+            ctx.fillStyle = "rgba(0, 20, 0, 0.4)"; // Verde escuro
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Reduz o valor da questão gradualmente
+            if(questionValue > 1) {
+                questionValue -= 0.05;
+                document.getElementById('pts-bonus').innerText = `Vale: ${Math.round(questionValue)} pts`;
+                document.getElementById('pts-bonus').style.color = "var(--danger)";
+            }
+        } else {
+            ctx.fillStyle = "#020617";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-        // Rastro Estilizado
+        // Rastro
         if(rastro.length > 1) {
             ctx.beginPath();
-            ctx.strokeStyle = "#60a5fa";
+            ctx.strokeStyle = isBulletTime ? "#00ff41" : "#38bdf8";
             ctx.lineWidth = 10;
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
             ctx.moveTo(rastro[0].x, rastro[0].y);
             rastro.forEach(p => ctx.lineTo(p.x, p.y));
             ctx.stroke();
         }
 
-        // Lógica das Frutas
         for(let i = frutas.length - 1; i >= 0; i--) {
             let f = frutas[i];
             f.update();
@@ -281,8 +267,20 @@
                 let d = Math.hypot(p.x - f.x, p.y - f.y);
                 if(d < 55 && !f.sliced) {
                     f.sliced = true;
-                    if(f.isCorrect) triggerSuccess(f);
-                    else triggerExplosion(f.x, f.y);
+                    if(f.isCorrect) {
+                        score += Math.round(questionValue);
+                        document.getElementById('display-pontos').innerText = score;
+                        flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: canvas.width/2 + 130, targetY: 140 };
+                    } else {
+                        efeitos.push({x: f.x, y: f.y, r: 10, alpha: 1});
+                        config.vidas--;
+                        document.getElementById('display-vidas').innerText = config.vidas;
+                        if(config.vidas <= 0) {
+                            gameActive = false;
+                            document.getElementById('game-over').style.display = 'flex';
+                            document.getElementById('resumo-final').innerText = `Fim do treino para ${config.nome}!`;
+                        }
+                    }
                 }
             });
 
@@ -292,31 +290,19 @@
             }
         }
 
-        // Efeito de Dano
-        efeitos.forEach((ef, i) => {
-            ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2);
-            ctx.strokeStyle = `rgba(239, 68, 68, ${ef.alpha})`;
-            ctx.lineWidth = 15; ctx.stroke();
-            ef.r += 12; ef.alpha -= 0.04;
-            if(ef.alpha <= 0) efeitos.splice(i, 1);
-        });
-
-        // Número voando para completar a tabuada
+        // Flying Number
         if(flyingNumber) {
-            flyingNumber.progress += 0.025;
+            flyingNumber.progress += 0.03;
             let curX = flyingNumber.x + (flyingNumber.targetX - flyingNumber.x) * flyingNumber.progress;
             let curY = flyingNumber.y + (flyingNumber.targetY - flyingNumber.y) * flyingNumber.progress;
-            
             ctx.fillStyle = "var(--accent)";
-            ctx.font = "900 55px Arial";
-            ctx.shadowBlur = 10; ctx.shadowColor = "black";
+            ctx.font = "bold 55px Arial";
             ctx.fillText(flyingNumber.val, curX, curY);
-
             if(flyingNumber.progress >= 1) {
                 document.getElementById('resultado-slot').innerText = flyingNumber.val;
                 document.getElementById('resultado-slot').style.color = "var(--success)";
                 flyingNumber = null;
-                setTimeout(novaPergunta, 1200);
+                setTimeout(novaPergunta, 800);
             }
         }
 
@@ -324,12 +310,19 @@
         requestAnimationFrame(animate);
     }
 
-    // Inputs
+    // Input Listeners
+    window.addEventListener('keydown', e => { if(e.code === 'Space') isBulletTime = true; });
+    window.addEventListener('keyup', e => { if(e.code === 'Space') isBulletTime = false; });
+
+    // Mobile Matrix Button
+    const matrixBtn = document.getElementById('matrix-btn');
+    matrixBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isBulletTime = true; });
+    matrixBtn.addEventListener('touchend', () => { isBulletTime = false; });
+
     const handleMove = (x, y) => { if(gameActive) rastro.push({x, y}); };
     canvas.addEventListener('mousemove', e => { if(e.buttons === 1) handleMove(e.clientX, e.clientY); });
     canvas.addEventListener('touchmove', e => { 
-        e.preventDefault(); 
-        handleMove(e.touches[0].clientX, e.touches[0].clientY); 
+        e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); 
     }, {passive: false});
     window.addEventListener('mouseup', () => rastro = []);
     window.addEventListener('touchend', () => rastro = []);
@@ -337,4 +330,3 @@
 </script>
 </body>
 </html>
-```
