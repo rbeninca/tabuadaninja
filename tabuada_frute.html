@@ -147,9 +147,46 @@
             transform: scale(1.07);
             box-shadow: 0 0 50px rgba(52,152,219,0.9);
         }
+        #btn-menu {
+            width: auto; min-width: 220px; padding: 12px 36px; margin-top: 14px;
+            font-size: clamp(14px, 2.5vw, 18px); font-weight: 700;
+            background: transparent; color: rgba(255,255,255,0.6);
+            border: 2px solid rgba(255,255,255,0.25); border-radius: 50px;
+            cursor: pointer; letter-spacing: 2px; transition: all 0.2s;
+        }
+        #btn-menu:hover, #btn-menu:active {
+            background: rgba(231,76,60,0.25); color: #e74c3c;
+            border-color: #e74c3c; box-shadow: 0 0 20px rgba(231,76,60,0.4);
+        }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        #confirm-menu {
+            margin-top: 20px; background: rgba(0,0,0,0.7); border-radius: 16px;
+            padding: 20px 30px; border: 1px solid rgba(231,76,60,0.5);
+            animation: fadeIn 0.2s ease;
+        }
+        .confirm-texto {
+            color: rgba(255,255,255,0.85); font-size: clamp(13px, 2.5vw, 16px);
+            text-align: center; margin-bottom: 16px; line-height: 1.5;
+        }
+        .confirm-texto strong { color: #f1c40f; }
+        .confirm-btns { display: flex; gap: 14px; justify-content: center; }
+        .btn-sim {
+            padding: 10px 28px; background: #e74c3c; color: white;
+            border: none; border-radius: 30px; font-size: clamp(13px, 2.5vw, 16px);
+            font-weight: 700; cursor: pointer; transition: transform 0.15s;
+        }
+        .btn-sim:hover { transform: scale(1.07); }
+        .btn-nao {
+            padding: 10px 28px; background: transparent; color: rgba(255,255,255,0.7);
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 30px;
+            font-size: clamp(13px, 2.5vw, 16px); font-weight: 700; cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-nao:hover { border-color: white; color: white; }
         @media (max-width: 480px) {
             #pause-overlay .pause-titulo { letter-spacing: 5px; }
             #btn-continuar { min-width: 170px; padding: 14px 28px; }
+            #btn-menu { min-width: 170px; }
         }
 
         @keyframes vidaDano {
@@ -191,6 +228,14 @@
                 <label>Velocidade (1-10):</label>
                 <input type="range" id="vel-slider" min="1" max="10" value="2" style="width:100%">
             </div>
+            <div class="field">
+                <label>Modo de Jogo:</label>
+                <select id="modo-select" style="width:100%;padding:12px;border-radius:12px;border:1px solid #334155;background:#0f172a;color:white;font-size:16px;">
+                    <option value="misto">🔀 Misto (conta e resultado)</option>
+                    <option value="nunca">🔢 Conta → Resultado (ex: 3×4 = ?)</option>
+                    <option value="sempre">🔄 Resultado → Conta (ex: ? = 12)</option>
+                </select>
+            </div>
             <p style="font-size: 14px; color: #888;">
                 Dica: <span class="hint-desktop">Segure <b>ESPAÇO</b></span><span class="hint-mobile">Segure o botão <b>⌛</b></span> para Câmera Lenta!
             </p>
@@ -213,11 +258,19 @@
         <div class="pause-titulo">⏸ PAUSADO</div>
         <div class="pause-sub">jogo em pausa</div>
         <button id="btn-continuar" onclick="togglePause()">▶ Continuar</button>
+        <button id="btn-menu" onclick="voltarMenu()">🏠 Menu Principal</button>
+        <div id="confirm-menu" style="display:none;">
+            <div class="confirm-texto">Tem certeza? Você perderá<br><strong id="confirm-pts"></strong> pontos acumulados.</div>
+            <div class="confirm-btns">
+                <button class="btn-sim" onclick="confirmarMenu()">Sim, sair</button>
+                <button class="btn-nao" onclick="cancelarMenu()">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <div id="pergunta-container" style="display: none;">
         <div id="pergunta">
-            <span id="conta"></span><span id="resultado-slot" style="color: var(--accent);">?</span>
+            <span id="conta"></span><span id="resultado-slot" style="color: var(--accent);">?</span><span id="conta-pos"></span>
             <div id="pts-bonus">Vale: 10 pts</div>
         </div>
     </div>
@@ -238,7 +291,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    let config = { nome: "", vidas: 3, velBase: 2 };
+    let config = { nome: "", vidas: 3, velBase: 2, modoInvertido: 'misto' };
     let score = 0;
     let gameActive = false;
     let isBulletTime = false;
@@ -345,12 +398,44 @@
         isPaused = !isPaused;
         document.getElementById('pause-btn').textContent = isPaused ? '▶' : '⏸';
         document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
+        document.getElementById('confirm-menu').style.display = 'none';
         if (isPaused) {
             initPauseItems();
         } else {
             frutas = []; fragmentos = []; explosoes = [];
             novaPergunta();
         }
+    }
+
+    function voltarMenu() {
+        const conf = document.getElementById('confirm-menu');
+        document.getElementById('confirm-pts').textContent = score + ' pontos';
+        conf.style.display = conf.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function cancelarMenu() {
+        document.getElementById('confirm-menu').style.display = 'none';
+    }
+
+    function confirmarMenu() {
+        gameActive = false;
+        isPaused = false;
+        score = 0;
+        frutas = []; fragmentos = []; explosoes = []; efeitos = [];
+        document.getElementById('pause-overlay').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'none';
+        document.getElementById('pergunta-container').style.display = 'none';
+        document.getElementById('matrix-btn').style.display = 'none';
+        document.getElementById('pause-btn').textContent = '⏸';
+        document.getElementById('display-pontos').innerText = '0';
+        document.getElementById('menu-inicial').style.display = 'flex';
+        isStartScreen = true;
+        initPauseItems();
+        (function startScreenLoop() {
+            if (!isStartScreen) return;
+            drawPauseScreen();
+            requestAnimationFrame(startScreenLoop);
+        })();
     }
 
     function initPauseItems() {
@@ -520,7 +605,7 @@
             });
         }
     }
-    let atualPergunta = { n1: 0, n2: 0, res: 0 };
+    let atualPergunta = { n1: 0, n2: 0, res: 0, invertido: false };
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -536,6 +621,7 @@
         config.nome = document.getElementById('nome-input').value;
         config.vidas = parseInt(document.getElementById('vidas-input').value);
         config.velBase = parseInt(document.getElementById('vel-slider').value);
+        config.modoInvertido = document.getElementById('modo-select').value;
 
         document.getElementById('menu-inicial').style.display = 'none';
         document.getElementById('game-ui').style.display = 'flex';
@@ -556,14 +642,27 @@
         atualPergunta.n1 = Math.floor(Math.random() * 8) + 2;
         atualPergunta.n2 = Math.floor(Math.random() * 8) + 2;
         atualPergunta.res = atualPergunta.n1 * atualPergunta.n2;
+        atualPergunta.invertido = config.modoInvertido === 'sempre'
+            ? true
+            : config.modoInvertido === 'nunca'
+            ? false
+            : Math.random() < 0.5;
         questionValue = 10;
-        
-        document.getElementById('conta').innerText = `${atualPergunta.n1} x ${atualPergunta.n2} = `;
-        document.getElementById('resultado-slot').innerText = "?";
-        document.getElementById('resultado-slot').style.color = "var(--accent)";
+
+        const slot = document.getElementById('resultado-slot');
+        slot.innerText = "?";
+        slot.style.color = "var(--accent)";
         document.getElementById('pts-bonus').innerText = "Vale: 10 pts";
         document.getElementById('pts-bonus').style.color = "var(--success)";
-        
+
+        if (atualPergunta.invertido) {
+            document.getElementById('conta').innerText = '';
+            document.getElementById('conta-pos').innerText = ` = ${atualPergunta.res}`;
+        } else {
+            document.getElementById('conta').innerText = `${atualPergunta.n1} × ${atualPergunta.n2} = `;
+            document.getElementById('conta-pos').innerText = '';
+        }
+
         spawnFrutas();
     }
 
@@ -607,7 +706,8 @@
 
             const sc = Math.min(1, Math.max(0.55, canvas.width / 900));
             const emojiSz = Math.round(75 * sc);
-            const numSz   = Math.round(34 * sc);
+            const isExpr  = String(this.valor).includes('×');
+            const numSz   = Math.round((isExpr ? 24 : 34) * sc);
 
             // Rastro da fruta
             const len = this.trail.length;
@@ -642,14 +742,30 @@
     function spawnFrutas() {
         frutas = [];
         const numTotal = 5;
-        let respostas = [atualPergunta.res];
-        
-        while(respostas.length < numTotal) {
-            let erro = atualPergunta.res + (Math.floor(Math.random()*15)-7);
-            if(!respostas.includes(erro) && erro > 0) respostas.push(erro);
+
+        if (atualPergunta.invertido) {
+            // Frutas mostram contas; corretas são qualquer a×b = res
+            const target = atualPergunta.res;
+            const opcoes = [{ txt: `${atualPergunta.n1}×${atualPergunta.n2}`, res: target }];
+            let tentativas = 0;
+            while (opcoes.length < numTotal && tentativas < 200) {
+                tentativas++;
+                const a = Math.floor(Math.random() * 8) + 2;
+                const b = Math.floor(Math.random() * 8) + 2;
+                const txt = `${a}×${b}`;
+                if (!opcoes.find(o => o.txt === txt)) opcoes.push({ txt, res: a * b });
+            }
+            opcoes.sort(() => Math.random() - 0.5);
+            opcoes.forEach((op, i) => frutas.push(new Fruta(op.txt, op.res === target, i, numTotal)));
+        } else {
+            let respostas = [atualPergunta.res];
+            while (respostas.length < numTotal) {
+                let erro = atualPergunta.res + (Math.floor(Math.random() * 15) - 7);
+                if (!respostas.includes(erro) && erro > 0) respostas.push(erro);
+            }
+            respostas.sort(() => Math.random() - 0.5);
+            respostas.forEach((v, i) => frutas.push(new Fruta(v, v === atualPergunta.res, i, numTotal)));
         }
-        respostas.sort(() => Math.random() - 0.5);
-        respostas.forEach((v, i) => frutas.push(new Fruta(v, v === atualPergunta.res, i, numTotal)));
     }
 
     function animate() {
