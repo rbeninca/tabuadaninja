@@ -67,6 +67,50 @@
             cursor: pointer; z-index: 1000; user-select: none;
         }
         #matrix-btn:active { background: var(--matrix); color: black; }
+
+        #pause-btn {
+            width: auto; padding: 4px 12px; font-size: 16px; font-weight: bold;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px; color: white; cursor: pointer; pointer-events: auto;
+            transition: background 0.2s; margin-left: 10px; vertical-align: middle;
+        }
+        #pause-btn:hover { background: rgba(255,255,255,0.25); }
+
+        @keyframes pauseFloat {
+            0%   { opacity: 0; transform: scale(0.6); }
+            15%  { opacity: 1; transform: scale(1.05); }
+            85%  { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.8); }
+        }
+        #pause-overlay {
+            position: absolute; inset: 0; display: flex; align-items: center;
+            justify-content: center; pointer-events: none; z-index: 50;
+        }
+        #pause-overlay span {
+            font-size: 3rem; font-weight: 900; color: rgba(255,255,255,0.18);
+            letter-spacing: 8px; text-transform: uppercase;
+        }
+
+        @keyframes vidaDano {
+            0%   { transform: scale(1);    color: inherit; }
+            15%  { transform: scale(1.8) rotate(-15deg); color: #ff0000; text-shadow: 0 0 20px #ff0000; }
+            35%  { transform: scale(0.7)  rotate(12deg);  color: #ff4444; }
+            55%  { transform: scale(1.4)  rotate(-8deg);  color: #ff2222; }
+            75%  { transform: scale(0.9); color: #ff6666; }
+            100% { transform: scale(1);   color: inherit; }
+        }
+        .vida-dano { animation: vidaDano 0.55s ease; }
+
+        @keyframes floatDano {
+            0%   { opacity: 1; transform: translateY(0)   scale(1.2); }
+            100% { opacity: 0; transform: translateY(80px) scale(0.7); }
+        }
+        .float-dano {
+            position: fixed; pointer-events: none; z-index: 999;
+            font-size: 32px; font-weight: bold; color: #e74c3c;
+            text-shadow: 0 0 12px #ff0000;
+            animation: floatDano 1s ease-out forwards;
+        }
     </style>
 </head>
 <body>
@@ -92,10 +136,11 @@
     </div>
 
     <div id="game-ui" style="display: none;">
-        <div>👤 <span id="display-nome"></span></div>
+        <div>👤 <span id="display-nome"></span><button id="pause-btn" onclick="togglePause()">⏸</button></div>
         <div style="color: var(--danger);">❤️ <span id="display-vidas"></span></div>
         <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
     </div>
+    <div id="pause-overlay" style="display:none;"><span>⏸ PAUSADO</span></div>
 
     <div id="pergunta-container" style="display: none;">
         <div id="pergunta">
@@ -126,8 +171,12 @@
     let isBulletTime = false;
     let questionValue = 10;
     
+    let isPaused = false;
+    let pauseItems = [];
+
     let frutas = [];
     let fragmentos = [];
+    let explosoes = [];
     let efeitos = [];
     let rastro = [];
     let flyingNumber = null;
@@ -206,6 +255,149 @@
             osc.start(now + i * 0.16);
             osc.stop(now + i * 0.16 + 0.22);
         });
+    }
+
+    function togglePause() {
+        if (!gameActive) return;
+        isPaused = !isPaused;
+        document.getElementById('pause-btn').textContent = isPaused ? '▶' : '⏸';
+        document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
+        if (isPaused) {
+            initPauseItems();
+        } else {
+            frutas = []; fragmentos = []; explosoes = [];
+            novaPergunta();
+        }
+    }
+
+    function initPauseItems() {
+        pauseItems = [];
+        const coresPares = [
+            '#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c',
+            '#3498db','#9b59b6','#e91e63','#00bcd4','#8bc34a',
+            '#ff5722','#607d8b','#ff9800','#673ab7','#009688',
+            '#cddc39','#795548','#f06292'
+        ];
+        //Controle número de particulas no pause. 
+        const pares = Math.max(5, Math.min(28, Math.round(canvas.width * canvas.height / 7000)));
+        for (let i = 0; i < pares; i++) {
+            const n1 = Math.floor(Math.random() * 8) + 2;
+            const n2 = Math.floor(Math.random() * 8) + 2;
+            const res = n1 * n2;
+            const cor = coresPares[i % coresPares.length];
+            const speed = () => (Math.random() - 0.5) * 3.2;
+            pauseItems.push({
+                text: `${n1}×${n2}`, res, isQ: true, cor,
+                x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                vx: speed(), vy: speed(), r: 36, glow: 0, pulse: Math.random() * Math.PI * 2
+            });
+            pauseItems.push({
+                text: `${res}`, res, isQ: false, cor,
+                x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                vx: speed(), vy: speed(), r: 30, glow: 0, pulse: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    function drawPauseScreen() {
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.88)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Atualiza posições
+        pauseItems.forEach(item => {
+            item.x += item.vx; item.y += item.vy;
+            item.pulse += 0.04;
+            if (item.x < item.r || item.x > canvas.width  - item.r) item.vx *= -1;
+            if (item.y < item.r || item.y > canvas.height - item.r) item.vy *= -1;
+            item.glow = Math.max(0, item.glow - 0.04);
+        });
+
+        // Detecta aproximação entre pergunta e resposta correspondente
+        const perguntas = pauseItems.filter(i => i.isQ);
+        const respostas = pauseItems.filter(i => !i.isQ);
+        perguntas.forEach(q => {
+            respostas.forEach(a => {
+                if (q.res !== a.res) return;
+                const d = Math.hypot(q.x - a.x, q.y - a.y);
+                const limiar = 220;
+                if (d < limiar) {
+                    const força = 1 - d / limiar;
+                    q.glow = Math.min(1, q.glow + força * 0.12);
+                    a.glow = Math.min(1, a.glow + força * 0.12);
+                    // Linha de conexão na cor do par
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(q.x, q.y); ctx.lineTo(a.x, a.y);
+                    ctx.strokeStyle = q.cor + Math.round(força * 0xb0).toString(16).padStart(2,'0');
+                    ctx.lineWidth = 2 + força * 4;
+                    ctx.shadowColor = q.cor; ctx.shadowBlur = 18 * força;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            });
+        });
+
+        // Desenha bolhas
+        pauseItems.forEach(item => {
+            const pulse = 1 + Math.sin(item.pulse) * 0.06;
+            const r = item.r * pulse;
+            ctx.save();
+            if (item.glow > 0) {
+                ctx.shadowColor = item.cor;
+                ctx.shadowBlur = 35 * item.glow;
+            }
+            // Círculo
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = item.glow > 0.2
+                ? item.cor + Math.round((0.12 + item.glow * 0.3) * 0xff).toString(16).padStart(2,'0')
+                : 'rgba(255,255,255,0.07)';
+            ctx.fill();
+            ctx.strokeStyle = item.cor;
+            ctx.lineWidth = item.glow > 0.2 ? 2 + item.glow * 4 : 1.5;
+            ctx.globalAlpha = item.glow > 0.2 ? 1 : 0.45;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            // Texto
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = `bold ${item.isQ ? 20 : 26}px Arial`;
+            ctx.fillStyle = item.glow > 0.2 ? item.cor : 'rgba(255,255,255,0.75)';
+            ctx.fillText(item.text, item.x, item.y);
+            ctx.restore();
+        });
+    }
+
+    function spawnExplosao(x, y) {
+        const cores = ['#e74c3c', '#ff6b35', '#f1c40f', '#ff4757', '#ff6348', '#ffffff'];
+        for (let i = 0; i < 22; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 4 + Math.random() * 11;
+            explosoes.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 5,
+                r: 3 + Math.random() * 7,
+                alpha: 1,
+                color: cores[Math.floor(Math.random() * cores.length)]
+            });
+        }
+    }
+
+    function animarDanoVida() {
+        const el = document.getElementById('display-vidas');
+        el.classList.remove('vida-dano');
+        void el.offsetWidth; // força reflow para reiniciar animação
+        el.classList.add('vida-dano');
+        el.addEventListener('animationend', () => el.classList.remove('vida-dano'), { once: true });
+
+        const ref = el.getBoundingClientRect();
+        const div = document.createElement('div');
+        div.className = 'float-dano';
+        div.textContent = '-❤️';
+        div.style.left = ref.left + 'px';
+        div.style.top  = ref.bottom + 'px';
+        document.body.appendChild(div);
+        div.addEventListener('animationend', () => div.remove());
     }
 
     function spawnFragmentos(x, y, emoji) {
@@ -345,7 +537,13 @@
 
     function animate() {
         if(!gameActive) return;
-        
+
+        if (isPaused) {
+            drawPauseScreen();
+            requestAnimationFrame(animate);
+            return;
+        }
+
         ctx.fillStyle = "#020617";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -384,9 +582,10 @@
                         flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
                     } else {
                         playErrorSound();
-                        efeitos.push({x: f.x, y: f.y, r: 10, alpha: 1});
+                        spawnExplosao(f.x, f.y);
                         config.vidas--;
                         document.getElementById('display-vidas').innerText = config.vidas;
+                        animarDanoVida();
                         if(config.vidas <= 0) {
                             gameActive = false;
                             document.getElementById('game-over').style.display = 'flex';
@@ -400,6 +599,22 @@
                 frutas.splice(i, 1);
                 if(frutas.length === 0 && !flyingNumber) spawnFrutas();
             }
+        }
+
+        // Explosão
+        for (let i = explosoes.length - 1; i >= 0; i--) {
+            const p = explosoes[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.45;
+            p.alpha -= 0.024; p.r *= 0.97;
+            if (p.alpha <= 0) { explosoes.splice(i, 1); continue; }
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
 
         // Fragmentos
@@ -448,7 +663,10 @@
     }
 
     // Input Listeners
-    window.addEventListener('keydown', e => { if(e.code === 'Space') isBulletTime = true; });
+    window.addEventListener('keydown', e => {
+        if(e.code === 'Space') isBulletTime = true;
+        if(e.code === 'KeyP') togglePause();
+    });
     window.addEventListener('keyup', e => { if(e.code === 'Space') isBulletTime = false; });
 
     // Mobile Matrix Button
