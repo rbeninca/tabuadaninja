@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Rename-Item \"c:\\\\Users\\\\rbeni\\\\projetos\\\\webti\\\\jogos\\\\tabuada_frute.html\" \"index.html\")"
+    ]
+  }
+}

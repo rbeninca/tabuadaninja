@@ -356,9 +356,25 @@
     <div id="matrix-btn" style="display: none;">⌛</div>
 
     <div id="game-over" class="overlay" style="display: none;">
-        <div class="card">
-            <h1 style="color: var(--danger);">FIM DE JOGO</h1>
-            <p id="resumo-final" style="font-size: 24px;"></p>
+        <div class="card" style="max-width:500px;width:92%;max-height:90vh;overflow-y:auto;">
+            <h1 style="color:var(--danger);margin-bottom:8px;">FIM DE JOGO</h1>
+            <p id="resumo-final" style="font-size:20px;margin-bottom:4px;"></p>
+            <div id="resultado-final" style="font-size:16px;color:var(--accent);margin-bottom:6px;"></div>
+            <div id="submit-status" style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:14px;min-height:18px;"></div>
+            <div id="ranking-section" style="display:none;margin-bottom:18px;">
+                <h3 style="color:var(--accent);margin-bottom:8px;font-size:16px;">🏆 Top 10</h3>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="color:rgba(255,255,255,0.4);border-bottom:1px solid #334155;">
+                            <th style="padding:4px 6px;text-align:left;font-weight:600;">#</th>
+                            <th style="padding:4px 6px;text-align:left;font-weight:600;">Nome</th>
+                            <th style="padding:4px 6px;text-align:right;font-weight:600;">Pts</th>
+                            <th style="padding:4px 6px;text-align:right;font-weight:600;">Tempo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ranking-body"></tbody>
+                </table>
+            </div>
             <button onclick="location.reload()">RECOMEÇAR</button>
         </div>
     </div>
@@ -369,7 +385,10 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
+    const WORKER_URL = 'https://tabuada-ninja-api.SEU-SUBDOMINIO.workers.dev';
+
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'misto', metaAcertos: 5 };
+    let tempoInicio = 0;
     let score = 0;
     let gameActive = false;
     let isBulletTime = false;
@@ -791,6 +810,61 @@
         requestAnimationFrame(startScreenLoop);
     })();
 
+    function formatTime(secs) {
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    async function submitScore() {
+        const tempoJogo = Math.floor((Date.now() - tempoInicio) / 1000);
+        document.getElementById('resultado-final').innerHTML =
+            `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogo)}`;
+        const statusEl = document.getElementById('submit-status');
+        statusEl.textContent = 'Enviando resultado...';
+        try {
+            const resp = await fetch(`${WORKER_URL}/score`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: config.nome, pontuacao: score, tempoJogo }),
+            });
+            if (!resp.ok) throw new Error();
+            statusEl.textContent = '✓ Resultado salvo!';
+        } catch {
+            statusEl.textContent = '⚠ Sem conexão — resultado não enviado.';
+        }
+        await carregarRanking();
+    }
+
+    async function carregarRanking() {
+        try {
+            const resp = await fetch(`${WORKER_URL}/ranking`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (!Array.isArray(data) || data.length === 0) return;
+            const tbody = document.getElementById('ranking-body');
+            tbody.innerHTML = '';
+            const medals = ['🥇', '🥈', '🥉'];
+            data.forEach((r, i) => {
+                const isMe = r.nome === config.nome && r.pontuacao === score;
+                const tr = document.createElement('tr');
+                tr.style.cssText = `
+                    color: ${isMe ? '#f1c40f' : 'rgba(255,255,255,0.8)'};
+                    font-weight: ${isMe ? '700' : '400'};
+                    border-bottom: 1px solid rgba(255,255,255,0.06);
+                `;
+                tr.innerHTML = `
+                    <td style="padding:5px 6px;">${medals[i] ?? `${i+1}º`}</td>
+                    <td style="padding:5px 6px;">${r.nome}</td>
+                    <td style="padding:5px 6px;text-align:right;">${r.pontuacao}</td>
+                    <td style="padding:5px 6px;text-align:right;">${formatTime(r.tempoJogo)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('ranking-section').style.display = 'block';
+        } catch { /* falha silenciosa */ }
+    }
+
     function startGame() {
         config.nome = document.getElementById('nome-input').value;
         config.vidas = parseInt(document.getElementById('vidas-input').value);
@@ -815,6 +889,7 @@
         score = 0;
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
+        tempoInicio = Date.now();
         pedirTelaCheia();
         isStartScreen = false;
         gameActive = true;
@@ -1033,7 +1108,8 @@
                         if(config.vidas <= 0) {
                             gameActive = false;
                             document.getElementById('game-over').style.display = 'flex';
-                            document.getElementById('resumo-final').innerText = `Fim do treino para ${config.nome}!`;
+                            document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
+                            submitScore();
                         }
                     }
                 }

@@ -1,0 +1,7 @@
+name            = "tabuada-ninja-api"
+main            = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Segredos (NÃO colocar aqui — use: wrangler secret put FIREBASE_PROJECT_ID)
+# FIREBASE_PROJECT_ID  → ID do projeto Firebase  (ex: tabuada-ninja-abc12)
+# FIREBASE_API_KEY     → Web API Key do Firebase (encontre em: console.firebase.google.com > Configurações do projeto)
