@@ -65,7 +65,7 @@
         #matrix-btn:active { background: var(--matrix); color: black; }
 
         #fullscreen-btn {
-            position: absolute; bottom: 24px; left: 24px; width: 56px; height: 56px;
+            position: absolute; bottom: 96px; left: 24px; width: 56px; height: 56px;
             background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.25);
             border-radius: 50%; color: rgba(255,255,255,0.6); font-size: 22px;
             display: none; align-items: center; justify-content: center;
@@ -74,7 +74,9 @@
         }
         #fullscreen-btn:active { background: rgba(255,255,255,0.25); color: white; }
         @media (max-width: 768px) {
-            #fullscreen-btn { width: 48px; height: 48px; font-size: 18px; bottom: 16px; left: 16px; }
+            #fullscreen-btn { width: 48px; height: 48px; font-size: 18px; bottom: 84px; left: 16px; }
+            #pause-btn { bottom: 16px; left: 16px; font-size: 15px; padding: 9px 16px; }
+            #matrix-btn { right: 16px; }
         }
 
         #menu-inicial {
@@ -93,13 +95,14 @@
         }
 
         #pause-btn {
-            width: auto; padding: 7px 18px; font-size: 18px; font-weight: bold;
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 10px; color: white; cursor: pointer; pointer-events: auto;
-            transition: background 0.2s; margin-left: 12px; vertical-align: middle;
+            position: absolute; bottom: 24px; left: 24px; display: none;
+            width: auto; padding: 10px 22px; font-size: 17px; font-weight: bold;
+            background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.35);
+            border-radius: 50px; color: white; cursor: pointer; pointer-events: auto;
+            transition: background 0.2s; z-index: 1000; user-select: none;
         }
-        #display-vidas-wrap { font-size: 1.35em; }
         #pause-btn:hover { background: rgba(255,255,255,0.25); }
+        #display-vidas-wrap { font-size: 1.35em; }
 
         .hint-desktop { display: inline; }
         .hint-mobile  { display: none; }
@@ -313,11 +316,22 @@
             <!-- VIEW 1: Ranking + botões principais -->
             <div id="view-ranking">
                 <div style="margin-bottom:16px;">
-                    <div style="color:var(--accent);font-size:13px;font-weight:700;letter-spacing:2px;margin-bottom:10px;">🏆 TOP 10</div>
+                    <div style="color:var(--accent);font-size:13px;font-weight:700;letter-spacing:2px;margin-bottom:10px;">🏆 RANKING</div>
                     <div id="menu-ranking-loading" style="font-size:13px;color:rgba(255,255,255,0.3);text-align:center;padding:8px 0;">carregando...</div>
-                    <table id="menu-ranking-table" style="width:100%;border-collapse:collapse;font-size:13px;display:none;">
-                        <tbody id="menu-ranking-body"></tbody>
-                    </table>
+                    <div id="menu-ranking-table" style="max-height:220px;overflow-y:auto;border-radius:8px;border:1px solid #1e293b;display:none;">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                            <thead style="position:sticky;top:0;background:#0f172a;z-index:1;">
+                                <tr style="color:rgba(255,255,255,0.4);border-bottom:1px solid #334155;">
+                                    <th style="padding:5px 6px;text-align:left;font-weight:600;">#</th>
+                                    <th style="padding:5px 6px;text-align:left;font-weight:600;">Nome</th>
+                                    <th style="padding:5px 6px;text-align:right;font-weight:600;">Pts</th>
+                                    <th style="padding:5px 6px;text-align:right;font-weight:600;">Tempo</th>
+                                    <th style="padding:5px 6px;text-align:right;font-weight:600;">Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menu-ranking-body"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <button onclick="mostrarConfig()" style="margin-top:4px;">▶ Novo Jogo</button>
                 <button onclick="pedirTelaCheia()" style="margin-top:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);font-size:15px;padding:10px;color:rgba(255,255,255,0.7);border-radius:10px;">
@@ -387,11 +401,12 @@
     </div>
 
     <div id="game-ui" style="display: none;">
-        <div>👤 <span id="display-nome"></span><button id="pause-btn" onclick="togglePause()">⏸ Pause</button></div>
+        <div>👤 <span id="display-nome"></span></div>
         <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
         <div style="color:#a78bfa;">⚡ <span id="display-vel">1</span></div>
         <div id="display-vidas-wrap" style="color: var(--danger);">❤️ <span id="display-vidas"></span><div id="barra-acertos"></div></div>
     </div>
+    <button id="pause-btn" onclick="togglePause()">⏸ Pause</button>
     <div id="pause-overlay" style="display:none;">
         <div class="pause-titulo">⏸ PAUSADO</div>
         <div class="pause-sub">jogo em pausa</div>
@@ -427,20 +442,27 @@
             <h1 style="color:var(--danger);margin-bottom:8px;">FIM DE JOGO</h1>
             <p id="resumo-final" style="font-size:20px;margin-bottom:4px;"></p>
             <div id="resultado-final" style="font-size:16px;color:var(--accent);margin-bottom:6px;"></div>
-            <div id="submit-status" style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:14px;min-height:18px;"></div>
+            <div id="submit-status" style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:10px;min-height:18px;"></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+                <input id="nome-edit-input" type="text" placeholder="Nome" style="flex:1;padding:9px 12px;font-size:15px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:white;">
+                <button id="nome-edit-btn" onclick="salvarNomeEdicao()" style="width:auto;padding:9px 16px;font-size:14px;background:var(--primary);border-radius:10px;">✓ Salvar nome</button>
+            </div>
             <div id="ranking-section" style="display:none;margin-bottom:18px;">
-                <h3 style="color:var(--accent);margin-bottom:8px;font-size:16px;">🏆 Top 10</h3>
-                <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                    <thead>
-                        <tr style="color:rgba(255,255,255,0.4);border-bottom:1px solid #334155;">
-                            <th style="padding:4px 6px;text-align:left;font-weight:600;">#</th>
-                            <th style="padding:4px 6px;text-align:left;font-weight:600;">Nome</th>
-                            <th style="padding:4px 6px;text-align:right;font-weight:600;">Pts</th>
-                            <th style="padding:4px 6px;text-align:right;font-weight:600;">Tempo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ranking-body"></tbody>
-                </table>
+                <h3 style="color:var(--accent);margin-bottom:8px;font-size:16px;">🏆 Ranking</h3>
+                <div style="max-height:240px;overflow-y:auto;border-radius:8px;border:1px solid #1e293b;">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead style="position:sticky;top:0;background:#0f172a;z-index:1;">
+                            <tr style="color:rgba(255,255,255,0.4);border-bottom:1px solid #334155;">
+                                <th style="padding:6px 6px;text-align:left;font-weight:600;">#</th>
+                                <th style="padding:6px 6px;text-align:left;font-weight:600;">Nome</th>
+                                <th style="padding:6px 6px;text-align:right;font-weight:600;">Pts</th>
+                                <th style="padding:6px 6px;text-align:right;font-weight:600;">Tempo</th>
+                                <th style="padding:6px 6px;text-align:right;font-weight:600;">Data</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ranking-body"></tbody>
+                    </table>
+                </div>
             </div>
             <button onclick="location.reload()">RECOMEÇAR</button>
         </div>
@@ -668,6 +690,7 @@
         document.getElementById('game-ui').style.display = 'none';
         document.getElementById('pergunta-container').style.display = 'none';
         document.getElementById('matrix-btn').style.display = 'none';
+        document.getElementById('pause-btn').style.display = 'none';
         document.getElementById('pause-btn').textContent = '⏸ Pause';
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
@@ -923,6 +946,19 @@
         return `${m}:${String(s).padStart(2, '0')}`;
     }
 
+    async function salvarNomeEdicao() {
+        const novoNome = document.getElementById('nome-edit-input').value.trim();
+        if (!novoNome) return;
+        config.nome = novoNome;
+        localStorage.setItem('tabuada_nome', novoNome);
+        document.getElementById('resumo-final').innerText = `Fim do treino, ${novoNome}!`;
+        const btn = document.getElementById('nome-edit-btn');
+        btn.textContent = '✓ Salvo!';
+        btn.disabled = true;
+        await submitScore();
+        setTimeout(() => { btn.textContent = '✓ Salvar nome'; btn.disabled = false; }, 2000);
+    }
+
     async function submitScore(apenasEnviar = false) {
         const tempoJogo = Math.floor((Date.now() - tempoInicio) / 1000);
         if (!apenasEnviar) {
@@ -954,10 +990,17 @@
     }
 
     async function fetchRankingData() {
-        const resp = await fetch(`${WORKER_URL}/ranking`);
+        const resp = await fetch(`${WORKER_URL}/ranking?limit=1000`);
         if (!resp.ok) return [];
         const data = await resp.json();
         return Array.isArray(data) ? data : [];
+    }
+
+    function formatDate(r) {
+        const ts = r.timestamp ?? r.data ?? r.createdAt ?? r.date;
+        if (!ts) return '–';
+        const d = new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts);
+        return isNaN(d) ? '–' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
     }
 
     function renderRanking(data, tbodyId, destaque = null) {
@@ -978,6 +1021,7 @@
                 <td style="padding:5px 6px;">${r.nome}</td>
                 <td style="padding:5px 6px;text-align:right;">${r.pontuacao}</td>
                 <td style="padding:5px 6px;text-align:right;">${formatTime(r.tempoJogo)}</td>
+                <td style="padding:5px 6px;text-align:right;color:rgba(255,255,255,0.4);font-size:11px;">${formatDate(r)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -1004,7 +1048,7 @@
                 return;
             }
             renderRanking(data, 'menu-ranking-body');
-            table.style.display = 'table';
+            table.style.display = 'block';
         } catch {
             loading.textContent = 'Sem conexão.';
         }
@@ -1024,7 +1068,8 @@
         document.getElementById('game-ui').style.display = 'flex';
         document.getElementById('pergunta-container').style.display = 'block';
         document.getElementById('matrix-btn').style.display = 'flex';
-        
+        document.getElementById('pause-btn').style.display = 'block';
+
         document.getElementById('display-nome').innerText = config.nome;
         document.getElementById('display-vidas').innerText = config.vidas;
 
@@ -1258,8 +1303,11 @@
             if(config.vidas <= 0) {
                 gameActive = false;
                 atualizarBtnFullscreen();
+                document.getElementById('pause-btn').style.display = 'none';
+                document.getElementById('matrix-btn').style.display = 'none';
                 document.getElementById('game-over').style.display = 'flex';
                 document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
+                document.getElementById('nome-edit-input').value = config.nome;
                 submitScore();
             }
         }
