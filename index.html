@@ -479,7 +479,7 @@
             <div id="view-config" style="display:none;">
                 <div class="field">
                     <label>Nome do Aluno:</label>
-                    <input type="text" id="nome-input" value="Ninja">
+                    <input type="text" id="nome-input" value="Ninja anônimo">
                 </div>
                 <div class="field">
                     <label>Modo de Jogo:</label>
@@ -624,7 +624,7 @@
                     </table>
                 </div>
             </div>
-            <button id="btn-recomecar" onclick="location.reload()" disabled style="opacity:0.35;cursor:not-allowed;">RECOMEÇAR</button>
+            <button id="btn-recomecar" onclick="voltarAoMenu()" disabled style="opacity:0.35;cursor:not-allowed;">RECOMEÇAR</button>
         </div>
     </div>
 
@@ -683,9 +683,7 @@
     }
 
     function getNomeJogadorAtual() {
-        const nomeConta = getNomeContaAtual();
-        if (nomeConta) return nomeConta;
-        return document.getElementById('nome-input')?.value.trim() || config.nome || 'Ninja';
+        return document.getElementById('nome-input')?.value.trim() || config.nome || 'Ninja anônimo';
     }
 
     function atualizarEdicaoNomeFinal() {
@@ -717,8 +715,10 @@
         const sugestao = (_usuarioLogado.displayName || _usuarioLogado.email || '').trim();
         if (!sugestao) return;
 
+        if (_nomeManualEditado) return;
+
         const atual = input.value.trim();
-        const podePreencher = !atual || (!_nomeManualEditado && atual === _nomeAutoPreenchido);
+        const podePreencher = !atual || atual === 'Ninja anônimo' || atual === _nomeAutoPreenchido;
         if (!podePreencher) return;
 
         input.value = sugestao;
@@ -1287,11 +1287,10 @@
         }
     }
 
-    function confirmarMenu() {
-        if (score > 0) submitScore(true);
+    function voltarAoMenu() {
         gameActive = false;
-        atualizarBtnFullscreen();
         isPaused = false;
+        scoreJaSalvo = false;
         score = 0;
         acertosSeguidos = 0;
         milestoneCount = 0;
@@ -1301,6 +1300,7 @@
         confetti = [];
         frutas = []; fragmentos = []; explosoes = []; efeitos = [];
         document.getElementById('pause-overlay').style.display = 'none';
+        document.getElementById('game-over').style.display = 'none';
         document.getElementById('game-ui').style.display = 'none';
         document.getElementById('pergunta-container').style.display = 'none';
         document.getElementById('matrix-btn').style.display = 'none';
@@ -1308,18 +1308,25 @@
         document.getElementById('pause-btn').textContent = '⏸ Pause';
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
+        atualizarBtnFullscreen();
         document.getElementById('menu-inicial').style.display = 'flex';
         document.getElementById('turma-btn').style.display = '';
         atualizarVisibilidadeInstalar();
         mostrarRanking();
         isStartScreen = true;
         carregarRankingMenu();
+        resetParticulas(true);
         initPauseItems();
         (function startScreenLoop() {
             if (!isStartScreen) return;
             drawPauseScreen();
             requestAnimationFrame(startScreenLoop);
         })();
+    }
+
+    function confirmarMenu() {
+        if (score > 0) submitScore(true);
+        voltarAoMenu();
     }
 
     function initPauseItems() {
@@ -1737,7 +1744,7 @@
 
     function startGame() {
         config.nome = getNomeJogadorAtual();
-        if (!getNomeContaAtual()) localStorage.setItem('tabuada_nome', config.nome);
+        localStorage.setItem('tabuada_nome', config.nome);
         config.vidas = parseInt(document.getElementById('vidas-input').value);
         config.velBase = parseInt(document.getElementById('vel-slider').value);
         config.modoInvertido = document.getElementById('modo-select').value;
