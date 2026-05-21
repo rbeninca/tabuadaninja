@@ -14,23 +14,18 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 100; padding: 20px; text-align: center;
         }
-
         .card {
             background: rgba(255,255,255,0.05); border: 2px solid var(--primary);
-            padding: 30px; border-radius: 25px; width: 100%; max-width: 450px;
+            padding: 30px; border-radius: 25px; width: 100%; max-width: 460px;
             box-shadow: 0 0 40px rgba(52, 152, 219, 0.2);
         }
-
         h1 { color: var(--accent); margin-top: 0; font-size: 2.8rem; text-shadow: 3px 3px 0px #000; }
-        
-        .field { margin-bottom: 20px; text-align: left; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; color: #94a3b8; font-size: 12px; }
-        
+        .field { margin-bottom: 18px; text-align: left; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; color: #94a3b8; font-size: 12px; }
         input[type="text"], input[type="number"] {
-            width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #334155; 
+            width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #334155;
             background: #0f172a; color: white; font-size: 18px; box-sizing: border-box;
         }
-
         button {
             width: 100%; padding: 18px; background: var(--success); color: white;
             border: none; border-radius: 12px; font-size: 22px; font-weight: bold;
@@ -39,30 +34,30 @@
 
         #game-ui {
             position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;
-            display: flex; justify-content: space-between; padding: 25px; box-sizing: border-box;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 22px 28px; box-sizing: border-box;
             font-size: 20px; font-weight: bold; z-index: 10;
         }
-
         #pergunta-container {
-            position: absolute; top: 100px; width: 100%; text-align: center; pointer-events: none; z-index: 5;
+            position: absolute; top: 90px; width: 100%;
+            text-align: center; pointer-events: none; z-index: 5;
         }
         #pergunta {
-            font-size: 70px; font-weight: 900; background: rgba(15, 23, 42, 0.8);
-            padding: 15px 45px; border-radius: 60px; border: 3px solid var(--accent);
+            font-size: clamp(34px, 7vw, 72px); font-weight: 900;
+            background: rgba(15, 23, 42, 0.85);
+            padding: clamp(8px, 1.5vw, 15px) clamp(18px, 4vw, 46px);
+            border-radius: 60px; border: 3px solid var(--accent);
             display: inline-block; transition: 0.3s;
         }
-
-        /* Indicador de Pontos da Questão */
         #pts-bonus {
-            position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%);
-            font-size: 20px; color: var(--success);
+            position: absolute; bottom: -36px; left: 50%; transform: translateX(-50%);
+            font-size: clamp(12px, 2vw, 20px); color: var(--success); white-space: nowrap;
         }
 
-        /* Botão Matrix Mobile */
         #matrix-btn {
-            position: absolute; bottom: 30px; right: 30px; width: 80px; height: 80px;
+            position: absolute; bottom: 24px; right: 24px; width: 72px; height: 72px;
             background: rgba(0, 255, 65, 0.2); border: 3px solid var(--matrix);
-            border-radius: 50%; color: var(--matrix); font-size: 30px;
+            border-radius: 50%; color: var(--matrix); font-size: 28px;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; z-index: 1000; user-select: none;
         }
@@ -71,12 +66,47 @@
         #menu-inicial { background: rgba(2, 6, 23, 0.78); }
 
         #pause-btn {
-            width: auto; padding: 4px 12px; font-size: 16px; font-weight: bold;
+            width: auto; padding: 4px 12px; font-size: 15px; font-weight: bold;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
             border-radius: 8px; color: white; cursor: pointer; pointer-events: auto;
             transition: background 0.2s; margin-left: 10px; vertical-align: middle;
         }
         #pause-btn:hover { background: rgba(255,255,255,0.25); }
+
+        .hint-desktop { display: inline; }
+        .hint-mobile  { display: none; }
+
+        /* ── Tablet (≤ 768px) ── */
+        @media (max-width: 768px) {
+            #game-ui { padding: 14px 18px; font-size: 16px; }
+            #pergunta-container { top: 72px; }
+            .card { padding: 24px 20px; }
+            h1 { font-size: 2.2rem; }
+            #matrix-btn { width: 62px; height: 62px; font-size: 22px; bottom: 16px; right: 16px; }
+            .hint-desktop { display: none; }
+            .hint-mobile  { display: inline; }
+        }
+        /* ── Mobile (≤ 480px) ── */
+        @media (max-width: 480px) {
+            #game-ui { padding: 10px 12px; font-size: 13px; }
+            #pergunta-container { top: 55px; }
+            #pergunta { border-width: 2px; border-radius: 36px; }
+            #pts-bonus { bottom: -26px; }
+            .card { padding: 16px 14px; border-radius: 18px; }
+            h1 { font-size: 1.75rem; }
+            input[type="text"], input[type="number"] { padding: 11px; font-size: 16px; }
+            button { padding: 13px; font-size: 18px; }
+            .field { margin-bottom: 12px; }
+            #pause-btn { font-size: 12px; padding: 3px 7px; margin-left: 6px; }
+            #pause-overlay span { font-size: 1.5rem; letter-spacing: 4px; }
+            .float-dano { font-size: 22px; }
+        }
+        /* ── Desktop largo (≥ 1200px) ── */
+        @media (min-width: 1200px) {
+            #game-ui { padding: 28px 40px; font-size: 22px; }
+            #pergunta-container { top: 110px; }
+            #matrix-btn { width: 80px; height: 80px; font-size: 30px; }
+        }
 
         @keyframes pauseFloat {
             0%   { opacity: 0; transform: scale(0.6); }
@@ -132,7 +162,9 @@
                 <label>Velocidade (1-10):</label>
                 <input type="range" id="vel-slider" min="1" max="10" value="2" style="width:100%">
             </div>
-            <p style="font-size: 14px; color: #888;">Dica: Segure ESPAÇO para Câmera Lenta!</p>
+            <p style="font-size: 14px; color: #888;">
+                Dica: <span class="hint-desktop">Segure <b>ESPAÇO</b></span><span class="hint-mobile">Segure o botão <b>⌛</b></span> para Câmera Lenta!
+            </p>
             <button onclick="startGame()">Começar</button>
         </div>
     </div>
@@ -282,7 +314,7 @@
             '#cddc39','#795548','#f06292'
         ];
         //Controle número de particulas no pause. 
-        const pares = Math.max(5, Math.min(28, Math.round(canvas.width * canvas.height / 700000)));
+        const pares = Math.max(5, Math.min(28, Math.round(canvas.width * canvas.height / 7000)));
         for (let i = 0; i < pares; i++) {
             const n1 = Math.floor(Math.random() * 8) + 2;
             const n2 = Math.floor(Math.random() * 8) + 2;
