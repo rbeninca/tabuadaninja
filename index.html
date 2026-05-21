@@ -479,6 +479,7 @@
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10 };
     let tempoInicio = 0;
     let score = 0;
+    let scoreJaSalvo = false;
     let gameActive = false;
     let isBulletTime = false;
     let questionValue = 10;
@@ -946,20 +947,101 @@
         return `${m}:${String(s).padStart(2, '0')}`;
     }
 
+    // ── Cache incremental de ranking ──────────────────────────────────────────
+    const RANKING_CACHE_KEY = 'tabuada_ranking_v2';
+
+    function getCacheRanking() {
+        try { return JSON.parse(localStorage.getItem(RANKING_CACHE_KEY)) || null; }
+        catch { return null; }
+    }
+
+    function setCacheRanking(records, newestTs) {
+        try { localStorage.setItem(RANKING_CACHE_KEY, JSON.stringify({ records, newestTs })); }
+        catch {}
+    }
+
+    // Verifica o timestamp do registro mais recente no servidor — 1 leitura.
+    async function fetchLastUpdate() {
+        try {
+            const resp = await fetch(`${WORKER_URL}/ranking/last-update`);
+            if (!resp.ok) return null;
+            return (await resp.json()).updatedAt ?? null;
+        } catch { return null; }
+    }
+
+    // Busca incrementalmente: só o que é mais novo que o cache.
+    // aposPost = true → sabe que há novidade, pula o sentinel.
+    async function sincronizarRanking(aposPost = false) {
+        const cache = getCacheRanking();
+
+        if (!aposPost && cache) {
+            const serverTs = await fetchLastUpdate();           // 1 leitura
+            if (serverTs && serverTs <= cache.newestTs) {
+                return cache.records;                           // cache válido, 0 leituras extras
+            }
+        }
+
+        // Busca apenas registros mais novos que o cache
+        const since = cache?.newestTs;
+        const url = since
+            ? `${WORKER_URL}/ranking?since=${encodeURIComponent(since)}`
+            : `${WORKER_URL}/ranking`;
+
+        let novos = [];
+        try {
+            const resp = await fetch(url);
+            if (resp.ok) novos = await resp.json();
+        } catch {}
+
+        if (!Array.isArray(novos)) novos = [];
+
+        const merged = cache ? [...cache.records, ...novos] : novos;
+        // Deduplica por timestamp — evita duplicatas caso o mesmo registro seja buscado mais de uma vez
+        const seen = new Set();
+        const todos = merged.filter(r => {
+            if (!r.data || seen.has(r.data)) return false;
+            seen.add(r.data);
+            return true;
+        });
+        todos.sort((a, b) => b.pontuacao - a.pontuacao);
+        const newestTs = todos.reduce((max, r) => (r.data > max ? r.data : max), cache?.newestTs ?? '');
+        setCacheRanking(todos, newestTs);
+        return todos;
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     async function salvarNomeEdicao() {
+        if (scoreJaSalvo) return;
         const novoNome = document.getElementById('nome-edit-input').value.trim();
         if (!novoNome) return;
+        scoreJaSalvo = true;
         config.nome = novoNome;
         localStorage.setItem('tabuada_nome', novoNome);
         document.getElementById('resumo-final').innerText = `Fim do treino, ${novoNome}!`;
         const btn = document.getElementById('nome-edit-btn');
-        btn.textContent = '✓ Salvo!';
+        btn.textContent = '⏳ Salvando...';
         btn.disabled = true;
-        await submitScore();
-        setTimeout(() => { btn.textContent = '✓ Salvar nome'; btn.disabled = false; }, 2000);
+
+        const tempoJogo = Math.floor((Date.now() - tempoInicio) / 1000);
+        try {
+            await fetch(`${WORKER_URL}/score`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: novoNome, pontuacao: score, tempoJogo }),
+            });
+        } catch {}
+
+        btn.textContent = '✓ Salvo!';
+
+        // Busca do servidor (que agora tem a entrada real com timestamp definitivo)
+        // Assim o cache só armazena o que veio do servidor, sem duplicatas por timestamps divergentes
+        const records = await sincronizarRanking(true);
+        renderRanking(records, 'ranking-body', { nome: novoNome, pontuacao: score });
+        document.getElementById('ranking-section').style.display = 'block';
     }
 
     async function submitScore(apenasEnviar = false) {
+        if (score === 0) return;
         const tempoJogo = Math.floor((Date.now() - tempoInicio) / 1000);
         if (!apenasEnviar) {
             document.getElementById('resultado-final').innerHTML =
@@ -974,10 +1056,9 @@
             });
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({}));
-                if (!apenasEnviar) {
+                if (!apenasEnviar)
                     document.getElementById('submit-status').textContent =
                         `⚠ Erro ${resp.status}: ${err.error ?? 'desconhecido'}`;
-                }
             } else {
                 if (!apenasEnviar)
                     document.getElementById('submit-status').textContent = '✓ Resultado salvo!';
@@ -989,15 +1070,8 @@
         if (!apenasEnviar) await carregarRanking();
     }
 
-    async function fetchRankingData() {
-        const resp = await fetch(`${WORKER_URL}/ranking?limit=1000`);
-        if (!resp.ok) return [];
-        const data = await resp.json();
-        return Array.isArray(data) ? data : [];
-    }
-
     function formatDate(r) {
-        const ts = r.timestamp ?? r.data ?? r.createdAt ?? r.date;
+        const ts = r.data ?? r.timestamp ?? r.createdAt ?? r.date;
         if (!ts) return '–';
         const d = new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts);
         return isNaN(d) ? '–' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
@@ -1029,8 +1103,8 @@
 
     async function carregarRanking() {
         try {
-            const data = await fetchRankingData();
-            if (data.length === 0) return;
+            const data = await sincronizarRanking(false);
+            if (!data.length) return;
             renderRanking(data, 'ranking-body', { nome: config.nome, pontuacao: score });
             document.getElementById('ranking-section').style.display = 'block';
         } catch { /* falha silenciosa */ }
@@ -1040,7 +1114,7 @@
         const loading = document.getElementById('menu-ranking-loading');
         const table   = document.getElementById('menu-ranking-table');
         try {
-            const data = await fetchRankingData();
+            const data = await sincronizarRanking(false);
             loading.style.display = 'none';
             if (data.length === 0) {
                 loading.textContent = 'Nenhum resultado ainda.';
@@ -1079,6 +1153,9 @@
         relancamentos = 0;
         confetti = [];
         score = 0;
+        scoreJaSalvo = false;
+        const btnSalvar = document.getElementById('nome-edit-btn');
+        if (btnSalvar) { btnSalvar.textContent = '✓ Salvar nome'; btnSalvar.disabled = false; }
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
         velocidadeAtual = config.velBase;
@@ -1308,7 +1385,10 @@
                 document.getElementById('game-over').style.display = 'flex';
                 document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
                 document.getElementById('nome-edit-input').value = config.nome;
-                submitScore();
+                const tempoJogoFinal = Math.floor((Date.now() - tempoInicio) / 1000);
+                document.getElementById('resultado-final').innerHTML =
+                    `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogoFinal)}`;
+                carregarRanking();
             }
         }
     }

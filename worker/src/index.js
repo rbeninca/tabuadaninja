@@ -16,8 +16,11 @@ export default {
       if (url.pathname === '/score' && request.method === 'POST') {
         return await handleSaveScore(request, env);
       }
+      if (url.pathname === '/ranking/last-update' && request.method === 'GET') {
+        return await handleLastUpdate(env);
+      }
       if (url.pathname === '/ranking' && request.method === 'GET') {
-        return await handleRanking(env);
+        return await handleRanking(url, env);
       }
       return json({ error: 'Not found' }, 404);
     } catch (e) {
@@ -53,16 +56,48 @@ async function handleSaveScore(request, env) {
   return json({ ok: true });
 }
 
-async function handleRanking(env) {
+// Retorna apenas o timestamp do registro mais recente — 1 leitura no Firestore.
+async function handleLastUpdate(env) {
   const query = {
     structuredQuery: {
       from: [{ collectionId: 'scores' }],
-      orderBy: [{ field: { fieldPath: 'pontuacao' }, direction: 'DESCENDING' }],
-      limit: 10,
+      orderBy: [{ field: { fieldPath: 'data' }, direction: 'DESCENDING' }],
+      limit: 1,
+      select: { fields: [{ fieldPath: 'data' }] },
     },
   };
 
   const resp = await firestoreQuery(env, query);
+  if (!resp.ok) return json({ updatedAt: null });
+
+  const data = await resp.json();
+  const doc = data.find(r => r.document);
+  const updatedAt = doc?.document?.fields?.data?.timestampValue ?? null;
+
+  return json({ updatedAt });
+}
+
+// Retorna registros ordenados por data ASC.
+// Com ?since=<isoTimestamp> retorna apenas os mais novos que esse timestamp.
+async function handleRanking(url, env) {
+  const since = url.searchParams.get('since');
+
+  const structured = {
+    from: [{ collectionId: 'scores' }],
+    orderBy: [{ field: { fieldPath: 'data' }, direction: 'ASCENDING' }],
+  };
+
+  if (since) {
+    structured.where = {
+      fieldFilter: {
+        field: { fieldPath: 'data' },
+        op: 'GREATER_THAN',
+        value: { timestampValue: since },
+      },
+    };
+  }
+
+  const resp = await firestoreQuery(env, { structuredQuery: structured });
   if (!resp.ok) {
     return json({ error: 'Erro ao buscar ranking' }, 502);
   }
