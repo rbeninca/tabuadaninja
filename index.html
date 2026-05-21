@@ -1059,6 +1059,7 @@
         updateBarraAcertos();
         document.getElementById('menu-inicial').style.display = 'flex';
         document.getElementById('turma-btn').style.display = '';
+        atualizarVisibilidadeInstalar();
         mostrarRanking();
         isStartScreen = true;
         carregarRankingMenu();
@@ -1464,6 +1465,7 @@
 
         document.getElementById('menu-inicial').style.display = 'none';
         document.getElementById('turma-btn').style.display = 'none';
+        atualizarVisibilidadeInstalar();
         document.getElementById('game-ui').style.display = 'flex';
         document.getElementById('pergunta-container').style.display = 'block';
         document.getElementById('matrix-btn').style.display = 'flex';
@@ -1963,7 +1965,9 @@
 
     function atualizarVisibilidadeInstalar() {
         const btn = document.getElementById('install-btn');
-        btn.style.display = isStandalone() ? 'none' : '';
+        const menu = document.getElementById('menu-inicial');
+        const menuVisivel = !!menu && getComputedStyle(menu).display !== 'none';
+        btn.style.display = (!isStandalone() && menuVisivel) ? '' : 'none';
     }
 
     function monitorarEstadoInstalacao() {
