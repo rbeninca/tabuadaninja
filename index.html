@@ -79,7 +79,7 @@
 
         #install-btn {
             position: fixed; bottom: 24px; left: 24px;
-            display: none;
+            display: block;
             width: auto; padding: 11px 20px;
             background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4);
             color: rgba(255,255,255,0.85); font-size: 14px; border-radius: 12px; cursor: pointer;
@@ -1956,6 +1956,10 @@
         btn.style.display = isStandalone() ? 'none' : '';
     }
 
+    function monitorarEstadoInstalacao() {
+        atualizarVisibilidadeInstalar();
+    }
+
     window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
         _installPrompt = e;
@@ -1966,6 +1970,11 @@
         _installPrompt = null;
         atualizarVisibilidadeInstalar();
         document.getElementById('pwa-debug').textContent = '✅ instalado';
+    });
+    window.addEventListener('pageshow', monitorarEstadoInstalacao);
+    window.addEventListener('focus', monitorarEstadoInstalacao);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) monitorarEstadoInstalacao();
     });
     async function instalarApp() {
         if (!_installPrompt) {
