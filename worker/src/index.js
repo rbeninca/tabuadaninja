@@ -58,12 +58,10 @@ async function handleSaveScore(request, env) {
 }
 
 // Retorna o timestamp do registro mais recente — 1 leitura no Firestore.
-// Turma: retorna null (sem orderBy não há índice; cliente sempre busca todos os docs da turma).
-// Global: orderBy data DESC, retorna o mais recente para invalidação de cache incremental.
+// Turma: usa índice composto (turma ASC, data ASC) lido em reverso para obter o mais recente.
+// Global: orderBy data DESC com índice de campo único.
 async function handleLastUpdate(url, env) {
   const turma = url.searchParams.get('turma') || '';
-
-  if (turma) return json({ updatedAt: null });
 
   const structured = {
     from: [{ collectionId: 'scores' }],
@@ -71,6 +69,12 @@ async function handleLastUpdate(url, env) {
     limit: 1,
     select: { fields: [{ fieldPath: 'data' }] },
   };
+
+  if (turma) {
+    structured.where = {
+      fieldFilter: { field: { fieldPath: 'turma' }, op: 'EQUAL', value: { stringValue: turma } },
+    };
+  }
 
   const resp = await firestoreQuery(env, { structuredQuery: structured });
   if (!resp.ok) return json({ updatedAt: null });
@@ -84,27 +88,24 @@ async function handleLastUpdate(url, env) {
 
 // Retorna registros ordenados por data ASC.
 // Com ?since=<iso> retorna apenas os mais novos que esse timestamp.
-// Com ?turma=X filtra pela turma (requer índice composto turma + data no Firestore).
+// Com ?turma=X filtra pela turma (índice composto turma+data, Collection Group scope).
 async function handleRanking(url, env) {
   const since = url.searchParams.get('since');
   const turma = url.searchParams.get('turma') || '';
 
-  const structured = { from: [{ collectionId: 'scores' }] };
+  const structured = {
+    from: [{ collectionId: 'scores' }],
+    orderBy: [{ field: { fieldPath: 'data' }, direction: 'ASCENDING' }],
+  };
 
-  if (turma) {
-    // Sem orderBy: usa apenas o índice de campo único em "turma" (automático).
-    // O "since" é ignorado para turma — o cliente faz merge/dedup.
-    structured.where = {
-      fieldFilter: { field: { fieldPath: 'turma' }, op: 'EQUAL', value: { stringValue: turma } },
-    };
-  } else {
-    // Ranking global: orderBy data ASC + filtro since opcional
-    structured.orderBy = [{ field: { fieldPath: 'data' }, direction: 'ASCENDING' }];
-    if (since) {
-      structured.where = {
-        fieldFilter: { field: { fieldPath: 'data' }, op: 'GREATER_THAN', value: { timestampValue: since } },
-      };
-    }
+  const filters = [];
+  if (turma) filters.push({ fieldFilter: { field: { fieldPath: 'turma' }, op: 'EQUAL',        value: { stringValue:   turma } } });
+  if (since) filters.push({ fieldFilter: { field: { fieldPath: 'data'  }, op: 'GREATER_THAN', value: { timestampValue: since } } });
+
+  if (filters.length === 2) {
+    structured.where = { compositeFilter: { op: 'AND', filters } };
+  } else if (filters.length === 1) {
+    structured.where = filters[0];
   }
 
   const resp = await firestoreQuery(env, { structuredQuery: structured });

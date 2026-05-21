@@ -1077,9 +1077,8 @@
         // Segunda barreira: descarta registros de turma errada antes de cachear
         if (TURMA) novos = novos.filter(r => r.turma === TURMA);
 
-        // Para turma: substitui cache (servidor sempre devolve tudo, sem since).
-        // Para global: acumula incrementalmente.
-        const merged = (TURMA || !cache) ? novos : [...cache.records, ...novos];
+        // Acumula incrementalmente (turma e global usam since).
+        const merged = cache ? [...cache.records, ...novos] : novos;
         // Deduplica por timestamp — evita duplicatas caso o mesmo registro seja buscado mais de uma vez
         const seen = new Set();
         const todos = merged.filter(r => {
