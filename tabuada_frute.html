@@ -1,61 +1,104 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ninja da Tabuada - Controle de Velocidade</title>
+    <title>Ninja da Tabuada - Master Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Arial', sans-serif; touch-action: none; }
+        :root { --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; --accent: #f1c40f; }
+        body { margin: 0; overflow: hidden; background: #020617; font-family: 'Segoe UI', Arial, sans-serif; touch-action: none; color: white; }
         canvas { display: block; }
+
+        .overlay {
+            position: absolute; inset: 0; background: rgba(2, 6, 23, 0.95);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; padding: 20px; text-align: center;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05); border: 2px solid var(--primary);
+            padding: 30px; border-radius: 25px; width: 100%; max-width: 450px;
+            box-shadow: 0 0 40px rgba(52, 152, 219, 0.2);
+        }
+
+        h1 { color: var(--accent); margin-top: 0; font-size: 2.8rem; text-shadow: 3px 3px 0px #000; letter-spacing: 2px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #94a3b8; text-transform: uppercase; font-size: 12px; }
         
-        #pergunta-ui {
-            position: absolute; top: 20px; width: 100%; text-align: center;
-            color: white; font-size: clamp(30px, 8vw, 50px); font-weight: bold; pointer-events: none;
-            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+        .field { margin-bottom: 25px; text-align: left; }
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #334155; 
+            background: #0f172a; color: white; font-size: 18px; box-sizing: border-box;
         }
 
-        #controle-velocidade {
-            position: absolute; top: 20px; right: 20px; 
-            background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 15px;
-            color: white; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);
-            text-align: center;
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); height: 25px; }
+
+        button {
+            width: 100%; padding: 18px; background: var(--success); color: white;
+            border: none; border-radius: 12px; font-size: 22px; font-weight: bold;
+            cursor: pointer; transition: 0.3s; text-transform: uppercase;
+        }
+        button:hover { background: #27ae60; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+
+        #game-ui {
+            position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;
+            display: flex; justify-content: space-between; padding: 25px; box-sizing: border-box;
+            font-size: 22px; font-weight: bold; text-shadow: 2px 2px 4px #000; z-index: 10;
         }
 
-        #stats {
-            position: absolute; bottom: 20px; left: 20px; color: #fff;
-            font-size: 18px; pointer-events: none; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px;
+        #pergunta-container {
+            position: absolute; top: 100px; width: 100%; text-align: center; pointer-events: none; z-index: 5;
         }
-
-        #game-over {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(15, 23, 42, 0.95); color: white; padding: 40px;
-            border-radius: 30px; text-align: center; display: none; border: 3px solid #f1c40f; z-index: 100;
+        #pergunta {
+            font-size: 70px; font-weight: 900; background: rgba(15, 23, 42, 0.6);
+            padding: 15px 45px; border-radius: 60px; border: 3px solid var(--accent);
+            display: inline-block; box-shadow: 0 0 30px rgba(241, 196, 15, 0.2);
         }
-        
-        input[type=range] { width: 100px; cursor: pointer; }
-        button { padding: 15px 40px; font-size: 22px; background: #e74c3c; color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="pergunta-ui">
-        <span id="conta">---</span><span id="resultado-interrogacao" style="color: #f1c40f;">?</span>
+    <!-- MENU INICIAL -->
+    <div id="menu-inicial" class="overlay">
+        <div class="card">
+            <h1>TABUADA NINJA</h1>
+            <div class="field">
+                <label>Nome do Aluno:</label>
+                <input type="text" id="nome-input" value="Ninja Aprendiz">
+            </div>
+            <div class="field">
+                <label>Número de Vidas:</label>
+                <input type="number" id="vidas-input" value="3" min="1">
+            </div>
+            <div class="field">
+                <label>Velocidade do Voo:</label>
+                <input type="range" id="vel-slider" min="1" max="10" value="2">
+                <div id="vel-label" style="text-align: center; color: var(--accent); margin-top: 10px; font-weight: bold;">Lento</div>
+            </div>
+            <button onclick="startGame()">Começar Treino</button>
+        </div>
     </div>
 
-    <div id="controle-velocidade">
-        <div style="font-size: 12px; margin-bottom: 5px;">VELOCIDADE / NÍVEL</div>
-        <input type="range" id="levelSlider" min="1" max="10" value="1">
-        <div id="levelVal" style="font-size: 20px; font-weight: bold; color: #f1c40f;">1</div>
+    <!-- UI DO JOGO -->
+    <div id="game-ui" style="display: none;">
+        <div>👤 <span id="display-nome"></span></div>
+        <div style="color: var(--danger);">❤️ <span id="display-vidas"></span></div>
+        <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
     </div>
 
-    <div id="stats">
-        ❤️ Vidas: <span id="lives">3</span> | ⭐ Pontos: <span id="score">0</span>
+    <div id="pergunta-container" style="display: none;">
+        <div id="pergunta">
+            <span id="conta"></span><span id="resultado-slot" style="color: var(--accent);">?</span>
+        </div>
     </div>
 
-    <div id="game-over">
-        <h1>Fim de Jogo!</h1>
-        <p id="final-score" style="font-size: 20px;"></p>
-        <button onclick="resetGame()">Jogar de Novo</button>
+    <!-- GAME OVER -->
+    <div id="game-over" class="overlay" style="display: none;">
+        <div class="card">
+            <h1 style="color: var(--danger);">FIM DO TREINO</h1>
+            <p id="resumo-final" style="font-size: 24px; margin: 20px 0;"></p>
+            <button onclick="location.reload()" style="background: var(--primary);">TENTAR NOVAMENTE</button>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -63,169 +106,172 @@
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const levelSlider = document.getElementById('levelSlider');
-    const levelVal = document.getElementById('levelVal');
+    
+    let config = { nome: "", vidas: 3, velBase: 2 };
+    let score = 0;
+    let gameActive = false;
+    let frutas = [];
+    let fragmentos = [];
+    let efeitos = [];
+    let rastro = [];
+    let flyingNumber = null;
+    let atualPergunta = { n1: 0, n2: 0, res: 0 };
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let score = 0;
-    let lives = 3;
-    let gameActive = true;
-    let rastro = [];
-    let frutas = [];
-    let fragmentos = [];
-    let efeitos = [];
-    let flyingNumber = null;
-    let pergunta = { n1: 0, n2: 0, res: 0 };
+    document.getElementById('vel-slider').oninput = function() {
+        const labels = ["Quase Parado", "Muito Lento", "Lento", "Tranquilo", "Normal", "Ninja", "Rápido", "Veloz", "Mestre", "Relâmpago"];
+        document.getElementById('vel-label').innerText = labels[this.value - 1];
+    };
 
-    const emojis = ["🍎", "🍉", "🍍", "🥭", "🍊", "🍓", "🥝"];
+    function startGame() {
+        config.nome = document.getElementById('nome-input').value;
+        config.vidas = parseInt(document.getElementById('vidas-input').value);
+        config.velBase = parseInt(document.getElementById('vel-slider').value);
 
-    // A mágica da lentidão está aqui
-    const getGravity = () => 0.005 + (parseInt(levelSlider.value) * 0.015);
-    const getImpulse = () => 4 + (parseInt(levelSlider.value) * 1.5);
+        document.getElementById('menu-inicial').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'flex';
+        document.getElementById('pergunta-container').style.display = 'block';
+        
+        document.getElementById('display-nome').innerText = config.nome;
+        document.getElementById('display-vidas').innerText = config.vidas;
+
+        gameActive = true;
+        novaPergunta();
+        animate();
+    }
 
     function novaPergunta() {
-        pergunta.n1 = Math.floor(Math.random() * 8) + 2;
-        pergunta.n2 = Math.floor(Math.random() * 8) + 2;
-        pergunta.res = pergunta.n1 * pergunta.n2;
-        document.getElementById('conta').innerText = `${pergunta.n1} x ${pergunta.n2} = `;
-        document.getElementById('resultado-interrogacao').innerText = "?";
-        document.getElementById('resultado-interrogacao').style.color = "#f1c40f";
-        spawnLote();
+        atualPergunta.n1 = Math.floor(Math.random() * 8) + 2;
+        atualPergunta.n2 = Math.floor(Math.random() * 8) + 2;
+        atualPergunta.res = atualPergunta.n1 * atualPergunta.n2;
+        
+        document.getElementById('conta').innerText = `${atualPergunta.n1} x ${atualPergunta.n2} = `;
+        document.getElementById('resultado-slot').innerText = "?";
+        document.getElementById('resultado-slot').style.color = "var(--accent)";
+        
+        spawnFrutas();
     }
 
     class Fruta {
-        constructor(valor, isCorrect) {
+        constructor(valor, isCorrect, slotIndex, totalSlots) {
             this.valor = valor;
             this.isCorrect = isCorrect;
-            this.radius = 45;
+            this.radius = 50;
             this.sliced = false;
-            this.emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            this.emoji = ["🍎", "🍉", "🍍", "🍊", "🍓", "🥝", "🫐", "🍋"][Math.floor(Math.random()*8)];
             
-            const grav = getGravity();
-            const imp = getImpulse();
+            // FÍSICA AJUSTADA
+            const fatorVel = config.velBase * 0.08;
+            this.gravity = 0.005 + (fatorVel * 0.1); 
             
-            // Lado do spawn
-            this.x = Math.random() < 0.5 ? -40 : canvas.width + 40;
-            this.y = canvas.height * 0.8;
-            
-            // Alvo sempre no terço central da tela
-            const alvoX = (canvas.width * 0.3) + (Math.random() * canvas.width * 0.4);
-            
-            // Cálculo físico para a parábola passar na tela independente da velocidade
-            this.vy = -imp;
-            const tempoNoAr = (2 * imp) / grav;
-            this.vx = (alvoX - this.x) / tempoNoAr;
+            // DISTRIBUIÇÃO EM SLOTS PARA NÃO BATER
+            const slotWidth = canvas.width / totalSlots;
+            this.x = (slotWidth * slotIndex) + (slotWidth / 2);
+            this.y = canvas.height + 100;
+
+            // Pulo para chegar quase no topo (90% da tela)
+            const alturaAlvo = canvas.height * 0.88; 
+            this.vy = -Math.sqrt(2 * this.gravity * alturaAlvo);
+            this.vx = (Math.random() - 0.5) * 1.5; // Leve balanço lateral
         }
 
         update() {
             this.x += this.vx;
             this.y += this.vy;
-            this.vy += getGravity();
+            this.vy += this.gravity;
+            if(this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
         }
 
         draw() {
-            if (this.sliced) return;
+            if(this.sliced) return;
             ctx.save();
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.font = "60px Arial";
+            ctx.shadowBlur = 15; ctx.shadowColor = "rgba(0,0,0,0.5)";
+            
+            ctx.font = "75px Arial";
             ctx.fillText(this.emoji, this.x, this.y);
             
-            ctx.font = "bold 30px Arial";
+            ctx.font = "bold 34px Arial";
             ctx.fillStyle = "white";
             ctx.strokeStyle = "black";
-            ctx.lineWidth = 4;
-            ctx.strokeText(this.valor, this.x, this.y);
-            ctx.fillText(this.valor, this.x, this.y);
+            ctx.lineWidth = 5;
+            ctx.strokeText(this.valor, this.x, this.y + 5);
+            ctx.fillText(this.valor, this.x, this.y + 5);
             ctx.restore();
         }
     }
 
-    class Fragmento {
-        constructor(x, y, vx, vy, emoji, lado) {
-            this.x = x; this.y = y;
-            this.vx = vx + (lado === 'L' ? -2 : 2);
-            this.vy = vy;
-            this.emoji = emoji;
-            this.angle = 0;
-            this.rotSpeed = lado === 'L' ? -0.05 : 0.05;
-            this.opacity = 1;
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += getGravity() * 2;
-            this.angle += this.rotSpeed;
-            this.opacity -= 0.015;
-        }
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.opacity;
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.angle);
-            ctx.font = "45px Arial";
-            ctx.fillText(this.emoji, 0, 0);
-            ctx.restore();
-        }
-    }
-
-    function spawnLote() {
+    function spawnFrutas() {
         frutas = [];
-        frutas.push(new Fruta(pergunta.res, true));
-        for(let i=0; i<2; i++) {
-            let errado = pergunta.res + (Math.floor(Math.random()*12)-6);
-            if(errado === pergunta.res || errado < 0) errado += 10;
-            frutas.push(new Fruta(errado, false));
+        const numTotal = 5; // Mais frutas na tela
+        let respostas = [atualPergunta.res];
+        
+        // Gerar respostas erradas inteligentes
+        while(respostas.length < numTotal) {
+            let erro;
+            const r = Math.random();
+            if(r < 0.3) erro = atualPergunta.res + (Math.floor(Math.random()*5)+1);
+            else if(r < 0.6) erro = atualPergunta.res - (Math.floor(Math.random()*5)+1);
+            else erro = (atualPergunta.n1 + 1) * atualPergunta.n2; // Pegadinha de tabuada próxima
+            
+            if(!respostas.includes(erro) && erro > 0) respostas.push(erro);
         }
+
+        // Embaralhar respostas
+        respostas.sort(() => Math.random() - 0.5);
+
+        // Criar frutas nos seus devidos slots
+        respostas.forEach((valor, index) => {
+            frutas.push(new Fruta(valor, valor === atualPergunta.res, index, numTotal));
+        });
+    }
+
+    function triggerSuccess(f) {
+        score += 10;
+        document.getElementById('display-pontos').innerText = score;
+        flyingNumber = {
+            x: f.x, y: f.y, val: f.valor, progress: 0,
+            targetX: canvas.width/2 + 130, targetY: 140
+        };
     }
 
     function triggerExplosion(x, y) {
         efeitos.push({x, y, r: 10, alpha: 1});
-        lives--;
-        document.getElementById('lives').innerText = lives;
-        if(lives <= 0) endGame();
-        else {
-            // Se errou, limpa as frutas e tenta a mesma pergunta de novo
-            setTimeout(spawnLote, 1000);
+        config.vidas--;
+        document.getElementById('display-vidas').innerText = config.vidas;
+        if(config.vidas <= 0) {
+            gameActive = false;
+            document.getElementById('game-over').style.display = 'flex';
+            document.getElementById('resumo-final').innerText = `${config.nome}, você conquistou ${score} pontos!`;
         }
     }
 
-    function triggerSuccess(fruta) {
-        score += 10;
-        document.getElementById('score').innerText = score;
-        
-        flyingNumber = {
-            x: fruta.x, y: fruta.y, val: fruta.valor,
-            targetX: canvas.width / 2 + (canvas.width * 0.1),
-            targetY: 45, progress: 0
-        };
-
-        // Aumenta nível automaticamente a cada 100 pontos (opcional)
-        if(score % 100 === 0 && levelSlider.value < 10) {
-            levelSlider.value = parseInt(levelSlider.value) + 1;
-            levelVal.innerText = levelSlider.value;
-        }
-    }
-
-    function update() {
+    function animate() {
         if(!gameActive) return;
-        ctx.fillStyle = "#0f172a";
+        
+        // Fundo com gradiente suave
+        let grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grd.addColorStop(0, "#020617");
+        grd.addColorStop(1, "#0f172a");
+        ctx.fillStyle = grd;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Rastro Neon
+        // Rastro Estilizado
         if(rastro.length > 1) {
             ctx.beginPath();
-            ctx.strokeStyle = "#38bdf8";
-            ctx.lineWidth = 6;
+            ctx.strokeStyle = "#60a5fa";
+            ctx.lineWidth = 10;
             ctx.lineCap = "round";
+            ctx.lineJoin = "round";
             ctx.moveTo(rastro[0].x, rastro[0].y);
             rastro.forEach(p => ctx.lineTo(p.x, p.y));
             ctx.stroke();
         }
 
-        // Desenhar Frutas
+        // Lógica das Frutas
         for(let i = frutas.length - 1; i >= 0; i--) {
             let f = frutas[i];
             f.update();
@@ -233,93 +279,62 @@
 
             rastro.forEach(p => {
                 let d = Math.hypot(p.x - f.x, p.y - f.y);
-                if(d < f.radius && !f.sliced) {
+                if(d < 55 && !f.sliced) {
                     f.sliced = true;
-                    fragmentos.push(new Fragmento(f.x, f.y, f.vx, f.vy, f.emoji, 'L'));
-                    fragmentos.push(new Fragmento(f.x, f.y, f.vx, f.vy, f.emoji, 'R'));
-                    
                     if(f.isCorrect) triggerSuccess(f);
                     else triggerExplosion(f.x, f.y);
                 }
             });
 
-            if(f.y > canvas.height + 150) {
+            if(f.y > canvas.height + 300) {
                 frutas.splice(i, 1);
-                if(frutas.length === 0 && !flyingNumber) spawnLote();
+                if(frutas.length === 0 && !flyingNumber) spawnFrutas();
             }
         }
 
-        // Fragmentos
-        fragmentos.forEach((frag, idx) => {
-            frag.update();
-            frag.draw();
-            if(frag.opacity <= 0) fragmentos.splice(idx, 1);
-        });
-
-        // Explosão Vermelha (Dano)
-        efeitos.forEach((ef, idx) => {
-            ctx.beginPath();
-            ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2);
+        // Efeito de Dano
+        efeitos.forEach((ef, i) => {
+            ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2);
             ctx.strokeStyle = `rgba(239, 68, 68, ${ef.alpha})`;
-            ctx.lineWidth = 10;
-            ctx.stroke();
-            ef.r += 15;
-            ef.alpha -= 0.05;
-            if(ef.alpha <= 0) efeitos.splice(idx, 1);
+            ctx.lineWidth = 15; ctx.stroke();
+            ef.r += 12; ef.alpha -= 0.04;
+            if(ef.alpha <= 0) efeitos.splice(i, 1);
         });
 
-        // Animação do número voando para o topo
+        // Número voando para completar a tabuada
         if(flyingNumber) {
-            flyingNumber.progress += 0.03;
+            flyingNumber.progress += 0.025;
             let curX = flyingNumber.x + (flyingNumber.targetX - flyingNumber.x) * flyingNumber.progress;
             let curY = flyingNumber.y + (flyingNumber.targetY - flyingNumber.y) * flyingNumber.progress;
             
-            ctx.fillStyle = "#f1c40f";
-            ctx.font = "bold 45px Arial";
+            ctx.fillStyle = "var(--accent)";
+            ctx.font = "900 55px Arial";
+            ctx.shadowBlur = 10; ctx.shadowColor = "black";
             ctx.fillText(flyingNumber.val, curX, curY);
 
             if(flyingNumber.progress >= 1) {
-                document.getElementById('resultado-interrogacao').innerText = flyingNumber.val;
-                document.getElementById('resultado-interrogacao').style.color = "#4ade80";
+                document.getElementById('resultado-slot').innerText = flyingNumber.val;
+                document.getElementById('resultado-slot').style.color = "var(--success)";
                 flyingNumber = null;
-                setTimeout(novaPergunta, 1000);
+                setTimeout(novaPergunta, 1200);
             }
         }
 
         if(rastro.length > 12) rastro.shift();
-        requestAnimationFrame(update);
+        requestAnimationFrame(animate);
     }
 
-    function endGame() {
-        gameActive = false;
-        document.getElementById('game-over').style.display = "block";
-        document.getElementById('final-score').innerText = `Pontos: ${score} | Nível Final: ${levelSlider.value}`;
-    }
-
-    function resetGame() {
-        score = 0; lives = 3; gameActive = true;
-        document.getElementById('score').innerText = "0";
-        document.getElementById('lives').innerText = "3";
-        document.getElementById('game-over').style.display = "none";
-        frutas = [];
-        novaPergunta();
-        update();
-    }
-
-    // Controles
-    levelSlider.oninput = () => { levelVal.innerText = levelSlider.value; };
-
-    const handleInput = (x, y) => { if(gameActive) rastro.push({x, y}); };
-    canvas.addEventListener('mousemove', e => { if(e.buttons === 1) handleInput(e.clientX, e.clientY); });
+    // Inputs
+    const handleMove = (x, y) => { if(gameActive) rastro.push({x, y}); };
+    canvas.addEventListener('mousemove', e => { if(e.buttons === 1) handleMove(e.clientX, e.clientY); });
     canvas.addEventListener('touchmove', e => { 
         e.preventDefault(); 
-        handleInput(e.touches[0].clientX, e.touches[0].clientY); 
+        handleMove(e.touches[0].clientX, e.touches[0].clientY); 
     }, {passive: false});
     window.addEventListener('mouseup', () => rastro = []);
     window.addEventListener('touchend', () => rastro = []);
 
-    novaPergunta();
-    update();
 </script>
 </body>
 </html>
+```
