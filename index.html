@@ -67,9 +67,20 @@
             border-radius: 60px; border: 3px solid var(--accent);
             display: inline-block; transition: 0.3s;
         }
+        #pts-row {
+            display: flex; gap: 24px; align-items: center; justify-content: center;
+            margin-top: 16px;
+        }
         #pts-bonus {
-            position: absolute; bottom: -36px; left: 50%; transform: translateX(-50%);
-            font-size: clamp(12px, 2vw, 20px); color: var(--success); white-space: nowrap;
+            font-size: clamp(22px, 4vw, 38px); font-weight: 900;
+            color: var(--accent); white-space: nowrap; letter-spacing: 1px;
+            text-shadow: 0 0 20px rgba(241,196,15,0.9), 0 2px 6px rgba(0,0,0,0.6);
+            transition: color 0.2s, text-shadow 0.2s;
+        }
+        #score-container {
+            font-size: clamp(22px, 4vw, 38px); font-weight: 900;
+            color: #7dd3fc; white-space: nowrap; letter-spacing: 1px;
+            text-shadow: 0 0 20px rgba(125,211,252,0.8), 0 2px 6px rgba(0,0,0,0.6);
         }
 
         #matrix-btn {
@@ -205,7 +216,9 @@
             #game-ui { padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left)); font-size: 13px; }
             #pergunta-container { top: calc(55px + env(safe-area-inset-top)); }
             #pergunta { border-width: 2px; border-radius: 36px; }
-            #pts-bonus { bottom: -26px; }
+            #pts-bonus { font-size: clamp(18px, 3.5vw, 28px); }
+            #score-container { font-size: clamp(18px, 3.5vw, 28px); }
+            #pts-row { gap: 16px; margin-top: 12px; }
             .card { padding: 16px 14px; border-radius: 18px; }
             h1 { font-size: 1.75rem; }
             input[type="text"], input[type="number"] { padding: 11px; font-size: 16px; }
@@ -383,6 +396,12 @@
             0%   { opacity: 1; transform: translateY(0)   scale(1.2); }
             100% { opacity: 0; transform: translateY(80px) scale(0.7); }
         }
+        @keyframes ptsPop {
+            0%   { transform: scale(1); }
+            40%  { transform: scale(1.7); filter: brightness(2.2) drop-shadow(0 0 8px #f1c40f); }
+            100% { transform: scale(1); filter: none; }
+        }
+        .pts-pop { animation: ptsPop 0.38s ease-out; }
         .float-dano {
             position: fixed; pointer-events: none; z-index: 999;
             font-size: 32px; font-weight: bold; color: #e74c3c;
@@ -534,7 +553,6 @@
 
     <div id="game-ui" style="display: none;">
         <div id="player-hud"><img id="display-foto" alt="Foto do jogador" referrerpolicy="no-referrer"><span><span id="display-player-icon">👤</span> <span id="display-nome"></span></span></div>
-        <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
         <div style="color:#a78bfa;">⚡ <span id="display-vel">1</span></div>
         <div id="display-vidas-wrap" style="color: var(--danger);">❤️ <span id="display-vidas"></span><div id="barra-acertos"></div></div>
     </div>
@@ -562,7 +580,10 @@
     <div id="pergunta-container" style="display: none;">
         <div id="pergunta">
             <span id="conta"></span><span id="resultado-slot" style="color: var(--accent);">?</span><span id="conta-pos"></span>
-            <div id="pts-bonus">Vale: 10 pts</div>
+        </div>
+        <div id="pts-row">
+            <div id="pts-bonus">⭐ 10 pts</div>
+            <div id="score-container">⭐ <span id="display-pontos">0</span></div>
         </div>
     </div>
 
@@ -707,6 +728,31 @@
         btnRec.disabled = false;
         btnRec.style.opacity = '';
         btnRec.style.cursor = '';
+    }
+
+    function setValorQuestao(pts) {
+        const el = document.getElementById('pts-bonus');
+        if (!el) return;
+        el.textContent = `⭐ ${pts}`;
+        if (pts <= 0) {
+            el.style.color = 'var(--danger)';
+            el.style.textShadow = '0 0 12px rgba(231,76,60,0.7)';
+        } else if (pts < 10) {
+            el.style.color = '#f39c12';
+            el.style.textShadow = '0 0 16px rgba(243,156,18,0.8)';
+        } else {
+            el.style.color = 'var(--accent)';
+            el.style.textShadow = '0 0 20px rgba(241,196,15,0.9), 0 2px 6px rgba(0,0,0,0.6)';
+        }
+    }
+
+    function pulsarPontos() {
+        const el = document.getElementById('score-container');
+        if (!el) return;
+        el.classList.remove('pts-pop');
+        void el.offsetWidth;
+        el.classList.add('pts-pop');
+        el.addEventListener('animationend', () => el.classList.remove('pts-pop'), { once: true });
     }
 
     function sugerirNomeDaConta() {
@@ -1018,6 +1064,7 @@
     let efeitos = [];
     let rastro = [];
     let flyingNumber = null;
+    let flyingScore  = null;
     let audioCtx = null;
 
     function pedirTelaCheia() {
@@ -1299,6 +1346,8 @@
         velocidadeAtual = config.velBase;
         confetti = [];
         frutas = []; fragmentos = []; explosoes = []; efeitos = [];
+        flyingNumber = null;
+        flyingScore  = null;
         document.getElementById('pause-overlay').style.display = 'none';
         document.getElementById('game-over').style.display = 'none';
         document.getElementById('game-ui').style.display = 'none';
@@ -1804,8 +1853,7 @@
         const slot = document.getElementById('resultado-slot');
         slot.innerText = "?";
         slot.style.color = "var(--accent)";
-        document.getElementById('pts-bonus').innerText = "Vale: 10 pts";
-        document.getElementById('pts-bonus').style.color = "var(--success)";
+        setValorQuestao(10);
 
         if (atualPergunta.invertido) {
             document.getElementById('conta').innerText = '';
@@ -1959,7 +2007,6 @@
                       : 0;
             const scoreAntes = score;
             score += pts;
-            document.getElementById('display-pontos').innerText = score;
             if (pts > 0 && Math.floor(score / 100) > Math.floor(scoreAntes / 100)) {
                 velocidadeAtual++;
                 document.getElementById('display-vel').innerText = velocidadeAtual;
@@ -1992,6 +2039,23 @@
             const slot = document.getElementById('resultado-slot');
             const r = slot.getBoundingClientRect();
             flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
+            if (pts > 0) {
+                const ptsBonusEl = document.getElementById('pts-bonus');
+                const rb = ptsBonusEl ? ptsBonusEl.getBoundingClientRect() : r;
+                const sc = document.getElementById('score-container');
+                const rs = sc ? sc.getBoundingClientRect() : { left: 0, width: 80, top: 30, height: 24 };
+                flyingScore = {
+                    x: rb.left + rb.width / 2,
+                    y: rb.top + rb.height / 2,
+                    pts,
+                    progress: 0,
+                    targetX: rs.left + rs.width / 2,
+                    targetY: rs.top + rs.height / 2,
+                    finalScore: score,
+                };
+            } else {
+                document.getElementById('display-pontos').innerText = score;
+            }
         } else {
             playErrorSound();
             spawnExplosao(f.x, f.y);
@@ -2035,12 +2099,8 @@
 
         drawFundoDoJogo();
 
-        if(isBulletTime) {
-            document.getElementById('pts-bonus').innerText = `Vale: 5 pts (desacelerar)`;
-            document.getElementById('pts-bonus').style.color = "var(--danger)";
-        } else if (usouDesaceleracao) {
-            document.getElementById('pts-bonus').innerText = `Vale: 5 pts`;
-            document.getElementById('pts-bonus').style.color = "var(--danger)";
+        if(isBulletTime || usouDesaceleracao) {
+            setValorQuestao(5);
         }
 
         // Rastro
@@ -2076,14 +2136,10 @@
                 frutas.splice(i, 1);
                 if(frutas.length === 0 && !flyingNumber) {
                     relancamentos++;
-                    const ptsBon = document.getElementById('pts-bonus');
                     if (relancamentos >= 2) {
-                        ptsBon.innerText = 'Vale: 0 pts';
-                        ptsBon.style.color = 'var(--danger)';
+                        setValorQuestao(0);
                     } else {
-                        const baseRel = usouDesaceleracao ? 2 : 7;
-                        ptsBon.innerText = `Vale: ${baseRel} pts (${relancamentos}º relançamento)`;
-                        ptsBon.style.color = 'var(--danger)';
+                        setValorQuestao(usouDesaceleracao ? 2 : 7);
                     }
                     spawnFrutas();
                 }
@@ -2147,7 +2203,7 @@
             ctx.restore();
         }
 
-        // Flying Number
+        // Flying Number (resposta voa até o slot da pergunta)
         if(flyingNumber) {
             flyingNumber.progress = Math.min(1, flyingNumber.progress + 0.045);
             const ease = 1 - Math.pow(1 - flyingNumber.progress, 3);
@@ -2168,6 +2224,34 @@
                 document.getElementById('resultado-slot').style.color = "var(--success)";
                 flyingNumber = null;
                 setTimeout(novaPergunta, 800);
+            }
+        }
+
+        // Flying Score (estrela voa do pts-bonus até o contador de pontos)
+        if (flyingScore) {
+            flyingScore.progress = Math.min(1, flyingScore.progress + 0.038);
+            const t = flyingScore.progress;
+            const ease = 1 - Math.pow(1 - t, 3);
+            const curX = flyingScore.x + (flyingScore.targetX - flyingScore.x) * ease;
+            const curY = flyingScore.y + (flyingScore.targetY - flyingScore.y) * ease;
+            const startSize = 46;
+            const endSize   = 18;
+            const fontSize  = Math.round(startSize - (startSize - endSize) * ease);
+            const alpha     = t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2;
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, alpha);
+            ctx.textAlign    = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.shadowColor = '#f1c40f';
+            ctx.shadowBlur  = 28 * (1 - ease);
+            ctx.fillStyle   = '#f1c40f';
+            ctx.fillText(`⭐ +${flyingScore.pts}`, curX, curY);
+            ctx.restore();
+            if (flyingScore.progress >= 1) {
+                document.getElementById('display-pontos').innerText = flyingScore.finalScore;
+                pulsarPontos();
+                flyingScore = null;
             }
         }
 
