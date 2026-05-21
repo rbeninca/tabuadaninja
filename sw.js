@@ -1,5 +1,5 @@
-const CACHE = 'tabuada-ninja-v1';
-const ASSETS = ['./', './index.html', './icone.png', './manifest.json'];
+const CACHE = 'tabuada-ninja-v2';
+const ASSETS = ['./', './index.html', './icone.png', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
