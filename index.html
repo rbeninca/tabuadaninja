@@ -2,8 +2,8 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ninja da Tabuada - Matrix Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tabuada Ninja</title>
     <style>
         :root { --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; --accent: #f1c40f; --matrix: #00ff41; }
         body { margin: 0; overflow: hidden; background: #020617; font-family: 'Segoe UI', Arial, sans-serif; touch-action: none; color: white; }
@@ -35,11 +35,12 @@
         #game-ui {
             position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;
             display: flex; justify-content: space-between; align-items: center;
-            padding: 22px 28px; box-sizing: border-box;
+            padding: calc(22px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-right)) 22px calc(28px + env(safe-area-inset-left));
+            box-sizing: border-box;
             font-size: 20px; font-weight: bold; z-index: 10;
         }
         #pergunta-container {
-            position: absolute; top: 90px; width: 100%;
+            position: absolute; top: calc(90px + env(safe-area-inset-top)); width: 100%;
             text-align: center; pointer-events: none; z-index: 5;
         }
         #pergunta {
@@ -63,6 +64,19 @@
         }
         #matrix-btn:active { background: var(--matrix); color: black; }
 
+        #fullscreen-btn {
+            position: absolute; bottom: 24px; left: 24px; width: 56px; height: 56px;
+            background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.25);
+            border-radius: 50%; color: rgba(255,255,255,0.6); font-size: 22px;
+            display: none; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 1000; user-select: none;
+            transition: background 0.2s, color 0.2s;
+        }
+        #fullscreen-btn:active { background: rgba(255,255,255,0.25); color: white; }
+        @media (max-width: 768px) {
+            #fullscreen-btn { width: 48px; height: 48px; font-size: 18px; bottom: 16px; left: 16px; }
+        }
+
         #menu-inicial {
             background: transparent;
             align-items: flex-start;
@@ -79,11 +93,12 @@
         }
 
         #pause-btn {
-            width: auto; padding: 4px 12px; font-size: 15px; font-weight: bold;
+            width: auto; padding: 7px 18px; font-size: 18px; font-weight: bold;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 8px; color: white; cursor: pointer; pointer-events: auto;
-            transition: background 0.2s; margin-left: 10px; vertical-align: middle;
+            border-radius: 10px; color: white; cursor: pointer; pointer-events: auto;
+            transition: background 0.2s; margin-left: 12px; vertical-align: middle;
         }
+        #display-vidas-wrap { font-size: 1.35em; }
         #pause-btn:hover { background: rgba(255,255,255,0.25); }
 
         .hint-desktop { display: inline; }
@@ -91,8 +106,8 @@
 
         /* ── Tablet (≤ 768px) ── */
         @media (max-width: 768px) {
-            #game-ui { padding: 14px 18px; font-size: 16px; }
-            #pergunta-container { top: 72px; }
+            #game-ui { padding: calc(14px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) 14px calc(18px + env(safe-area-inset-left)); font-size: 16px; }
+            #pergunta-container { top: calc(72px + env(safe-area-inset-top)); }
             .card { padding: 24px 20px; }
             h1 { font-size: 2.2rem; }
             #matrix-btn { width: 62px; height: 62px; font-size: 22px; bottom: 16px; right: 16px; }
@@ -101,8 +116,8 @@
         }
         /* ── Mobile (≤ 480px) ── */
         @media (max-width: 480px) {
-            #game-ui { padding: 10px 12px; font-size: 13px; }
-            #pergunta-container { top: 55px; }
+            #game-ui { padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left)); font-size: 13px; }
+            #pergunta-container { top: calc(55px + env(safe-area-inset-top)); }
             #pergunta { border-width: 2px; border-radius: 36px; }
             #pts-bonus { bottom: -26px; }
             .card { padding: 16px 14px; border-radius: 18px; }
@@ -110,14 +125,14 @@
             input[type="text"], input[type="number"] { padding: 11px; font-size: 16px; }
             button { padding: 13px; font-size: 18px; }
             .field { margin-bottom: 12px; }
-            #pause-btn { font-size: 12px; padding: 3px 7px; margin-left: 6px; }
+            #pause-btn { font-size: 14px; padding: 5px 10px; margin-left: 6px; }
 
             .float-dano { font-size: 22px; }
         }
         /* ── Desktop largo (≥ 1200px) ── */
         @media (min-width: 1200px) {
-            #game-ui { padding: 28px 40px; font-size: 22px; }
-            #pergunta-container { top: 110px; }
+            #game-ui { padding: calc(28px + env(safe-area-inset-top)) calc(40px + env(safe-area-inset-right)) 28px calc(40px + env(safe-area-inset-left)); font-size: 22px; }
+            #pergunta-container { top: calc(110px + env(safe-area-inset-top)); }
             #matrix-btn { width: 80px; height: 80px; font-size: 30px; }
         }
 
@@ -334,7 +349,7 @@
                     <label>Modo de Jogo:</label>
                     <select id="modo-select" style="width:100%;padding:12px;border-radius:12px;border:1px solid #334155;background:#0f172a;color:white;font-size:16px;">
                         <option value="misto">🔀 Misto (conta e resultado)</option>
-                        <option value="nunca">🔢 Conta → Resultado (ex: 3×4 = ?)</option>
+                        <option value="nunca" selected>🔢 Conta → Resultado (ex: 3×4 = ?)</option>
                         <option value="sempre">🔄 Resultado → Conta (ex: ? = 12)</option>
                     </select>
                 </div>
@@ -354,8 +369,8 @@
                         <div class="field">
                             <label>Acertos para ganhar vida:</label>
                             <div class="toggle-group" id="meta-toggle">
-                                <button class="toggle-opt active" data-val="5" onclick="selectMeta(this)">🎁 5 acertos</button>
-                                <button class="toggle-opt" data-val="10" onclick="selectMeta(this)">🎁 10 acertos</button>
+                                <button class="toggle-opt" data-val="5" onclick="selectMeta(this)">🎁 5 acertos</button>
+                                <button class="toggle-opt active" data-val="10" onclick="selectMeta(this)">🎁 10 acertos</button>
                             </div>
                         </div>
                     </div>
@@ -372,10 +387,10 @@
     </div>
 
     <div id="game-ui" style="display: none;">
-        <div>👤 <span id="display-nome"></span><button id="pause-btn" onclick="togglePause()">⏸</button></div>
-        <div style="color: var(--danger);">❤️ <span id="display-vidas"></span><div id="barra-acertos"><div class="barra-seg" id="barra-seg-0"></div><div class="barra-seg" id="barra-seg-1"></div><div class="barra-seg" id="barra-seg-2"></div><div class="barra-seg" id="barra-seg-3"></div><div class="barra-seg" id="barra-seg-4"></div></div></div>
+        <div>👤 <span id="display-nome"></span><button id="pause-btn" onclick="togglePause()">⏸ Pause</button></div>
         <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
         <div style="color:#a78bfa;">⚡ <span id="display-vel">1</span></div>
+        <div id="display-vidas-wrap" style="color: var(--danger);">❤️ <span id="display-vidas"></span><div id="barra-acertos"></div></div>
     </div>
     <div id="pause-overlay" style="display:none;">
         <div class="pause-titulo">⏸ PAUSADO</div>
@@ -405,6 +420,7 @@
     </div>
 
     <div id="matrix-btn" style="display: none;">⌛</div>
+    <div id="fullscreen-btn" onclick="pedirTelaCheia()" title="Tela cheia">⛶</div>
 
     <div id="game-over" class="overlay" style="display: none;">
         <div class="card" style="max-width:500px;width:92%;max-height:90vh;overflow-y:auto;">
@@ -438,7 +454,7 @@
     
     const WORKER_URL = 'https://tabuada-ninja-api.rbeninca.workers.dev';
 
-    let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'misto', metaAcertos: 5 };
+    let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10 };
     let tempoInicio = 0;
     let score = 0;
     let gameActive = false;
@@ -475,6 +491,13 @@
                 || el.mozRequestFullScreen
                 || el.msRequestFullscreen;
         if (fn) fn.call(el).catch(() => {});
+    }
+
+    function atualizarBtnFullscreen() {
+        const emJogo = gameActive;
+        const emFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        const btn = document.getElementById('fullscreen-btn');
+        btn.style.display = (emJogo && !emFullscreen) ? 'flex' : 'none';
     }
 
     function getAudio() {
@@ -555,7 +578,7 @@
     function togglePause() {
         if (!gameActive) return;
         isPaused = !isPaused;
-        document.getElementById('pause-btn').textContent = isPaused ? '▶' : '⏸';
+        document.getElementById('pause-btn').textContent = isPaused ? '▶' : '⏸ Pause';
         document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
         document.getElementById('confirm-menu').style.display = 'none';
         if (isPaused) {
@@ -590,13 +613,30 @@
     function selectMeta(btn) {
         document.querySelectorAll('#meta-toggle .toggle-opt').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        config.metaAcertos = parseInt(btn.dataset.val);
+        rebuildBarraAcertos();
+        updateBarraAcertos();
+    }
+
+    function rebuildBarraAcertos() {
+        const barra = document.getElementById('barra-acertos');
+        const meta = config.metaAcertos;
+        const segW = meta <= 5 ? 16 : (meta <= 10 ? 12 : 9);
+        barra.innerHTML = '';
+        for (let i = 0; i < meta; i++) {
+            const d = document.createElement('div');
+            d.className = 'barra-seg';
+            d.id = `barra-seg-${i}`;
+            d.style.width = segW + 'px';
+            barra.appendChild(d);
+        }
     }
 
     function updateBarraAcertos(flash = false) {
         const meta = config.metaAcertos;
         const cor = coresMilestone[milestoneCount % coresMilestone.length];
-        const filled = flash ? 5 : Math.floor((acertosSeguidos % meta) * 5 / meta);
-        for (let i = 0; i < 5; i++) {
+        const filled = flash ? meta : (acertosSeguidos % meta);
+        for (let i = 0; i < meta; i++) {
             const seg = document.getElementById(`barra-seg-${i}`);
             if (!seg) continue;
             if (i < filled) {
@@ -614,6 +654,7 @@
     function confirmarMenu() {
         if (score > 0) submitScore(true);
         gameActive = false;
+        atualizarBtnFullscreen();
         isPaused = false;
         score = 0;
         acertosSeguidos = 0;
@@ -627,7 +668,7 @@
         document.getElementById('game-ui').style.display = 'none';
         document.getElementById('pergunta-container').style.display = 'none';
         document.getElementById('matrix-btn').style.display = 'none';
-        document.getElementById('pause-btn').textContent = '⏸';
+        document.getElementById('pause-btn').textContent = '⏸ Pause';
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
         document.getElementById('menu-inicial').style.display = 'flex';
@@ -802,11 +843,9 @@
 
     function mostrarMilestone(ganho) {
         const overlay = document.getElementById('milestone-overlay');
-        document.getElementById('milestone-texto').textContent = ganho === 1 ? '+1 VIDA!' : `+${ganho} VIDAS!`;
-        document.getElementById('milestone-sub').textContent =
-            ganho === 1 ? `✨ ${config.metaAcertos} acertos seguidos!` : `🔥 ${acertosSeguidos} acertos! Bônus x${ganho}!`;
-        document.getElementById('milestone-streak').textContent =
-            milestoneCount > 1 ? `${milestoneCount}ª sequência — próximo bônus: +${Math.pow(2, milestoneCount)} vidas!` : '';
+        document.getElementById('milestone-texto').textContent = '+1 VIDA!';
+        document.getElementById('milestone-sub').textContent = `✨ ${config.metaAcertos} acertos seguidos!`;
+        document.getElementById('milestone-streak').textContent = '';
         overlay.style.display = 'flex';
         const txt = document.getElementById('milestone-texto');
         txt.style.animation = 'none';
@@ -870,6 +909,7 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    rebuildBarraAcertos();
     initPauseItems();
     (function startScreenLoop() {
         if (!isStartScreen) return;
@@ -977,7 +1017,8 @@
         config.velBase = parseInt(document.getElementById('vel-slider').value);
         config.modoInvertido = document.getElementById('modo-select').value;
         const metaBtn = document.querySelector('#meta-toggle .toggle-opt.active');
-        config.metaAcertos = metaBtn ? parseInt(metaBtn.dataset.val) : 5;
+        config.metaAcertos = metaBtn ? parseInt(metaBtn.dataset.val) : 10;
+        rebuildBarraAcertos();
 
         document.getElementById('menu-inicial').style.display = 'none';
         document.getElementById('game-ui').style.display = 'flex';
@@ -1001,6 +1042,7 @@
         pedirTelaCheia();
         isStartScreen = false;
         gameActive = true;
+        setTimeout(atualizarBtnFullscreen, 400);
         novaPergunta();
         animate();
     }
@@ -1045,7 +1087,7 @@
             this.trail = [];
 
             const fatorVel = Math.pow(velocidadeAtual, 1.5) * 0.025;
-            this.gravity = 0.004 + (fatorVel * 0.1);
+            this.gravity = (0.004 + (fatorVel * 0.1)) * (velocidadeAtual === 1 ? 0.5 : 1);
 
             const slotWidth = canvas.width / totalSlots;
             this.x = (slotWidth * slotIndex) + (slotWidth / 2);
@@ -1197,7 +1239,7 @@
                             if (acertosSeguidos % config.metaAcertos === 0) {
                                 updateBarraAcertos(true);
                                 milestoneCount++;
-                                const ganho = Math.pow(2, milestoneCount - 1);
+                                const ganho = 1;
                                 config.vidas += ganho;
                                 document.getElementById('display-vidas').innerText = config.vidas;
                                 setTimeout(() => updateBarraAcertos(), 550);
@@ -1224,6 +1266,7 @@
                         animarDanoVida();
                         if(config.vidas <= 0) {
                             gameActive = false;
+                            atualizarBtnFullscreen();
                             document.getElementById('game-over').style.display = 'flex';
                             document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
                             submitScore();
@@ -1363,8 +1406,8 @@
         if (isStartScreen || isPaused) initPauseItems();
     }
     window.addEventListener('resize', redimensionar);
-    document.addEventListener('fullscreenchange',       redimensionar);
-    document.addEventListener('webkitfullscreenchange', redimensionar);
+    document.addEventListener('fullscreenchange',       () => { redimensionar(); atualizarBtnFullscreen(); });
+    document.addEventListener('webkitfullscreenchange', () => { redimensionar(); atualizarBtnFullscreen(); });
 
     carregarRankingMenu();
 
