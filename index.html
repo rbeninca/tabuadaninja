@@ -693,14 +693,14 @@
         const btn = document.getElementById('nome-edit-btn');
         if (!input || !btn) return;
 
-        const logado = !!getNomeContaAtual();
+        const logado = !!_usuarioLogado;
         input.value = config.nome;
         input.disabled = logado;
         input.style.opacity = logado ? '0.65' : '1';
         btn.disabled = logado;
         btn.style.opacity = logado ? '0.55' : '';
         btn.style.cursor = logado ? 'not-allowed' : '';
-        btn.textContent = logado ? 'Conta Google' : '✓ Salvar nome';
+        btn.textContent = logado ? (scoreJaSalvo ? '✓ Pontuação salva!' : '⏳ Salvando...') : '✓ Salvar nome';
     }
 
     function habilitarRecomecar() {
@@ -818,6 +818,7 @@
                 sugerirNomeDaConta();
                 atualizarUIAuth();
                 atualizarHudJogador();
+                atualizarEdicaoNomeFinal();
             });
         } catch {
             _auth = null;
@@ -1508,7 +1509,7 @@
     }
 
     // ── Cache incremental de ranking ──────────────────────────────────────────
-    const RANKING_CACHE_KEY = TURMA ? `tabuada_ranking_v2_${TURMA}` : 'tabuada_ranking_v2';
+    const RANKING_CACHE_KEY = TURMA ? `tabuada_ranking_v3_${TURMA}` : 'tabuada_ranking_v3';
 
     function getCacheRanking() {
         try { return JSON.parse(localStorage.getItem(RANKING_CACHE_KEY)) || null; }
@@ -1618,7 +1619,10 @@
     }
 
     async function submitScore(apenasEnviar = false) {
-        if (score === 0) return;
+        if (score === 0) {
+            if (!apenasEnviar) habilitarRecomecar();
+            return;
+        }
         const nomeJogador = getNomeJogadorAtual();
         if (!apenasEnviar && scoreJaSalvo) {
             habilitarRecomecar();
@@ -1651,8 +1655,11 @@
                     document.getElementById('submit-status').textContent =
                         `⚠ Erro ${resp.status}: ${err.error ?? 'desconhecido'}`;
             } else {
-                if (!apenasEnviar)
+                if (!apenasEnviar) {
                     document.getElementById('submit-status').textContent = '✓ Resultado salvo!';
+                    const btnEdit = document.getElementById('nome-edit-btn');
+                    if (btnEdit && _usuarioLogado) btnEdit.textContent = '✓ Pontuação salva!';
+                }
             }
         } catch (e) {
             if (!apenasEnviar)
@@ -1678,7 +1685,7 @@
         const medals = ['🥇', '🥈', '🥉'];
         data.forEach((r, i) => {
             const isMe = destaque && r.nome === destaque.nome && r.pontuacao === destaque.pontuacao;
-            const foto = sanitizePhotoUrl(r.fotoUrl);
+            const foto = sanitizePhotoUrl(r.fotoUrl || r.fotoURL || r.foto_url || r.photoURL);
             const nomeJogador = escapeHtml(r.nome);
             const nomeComAvatar = foto
                 ? `<span style="display:inline-flex;align-items:center;gap:6px;"><img src="${foto}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:18px;height:18px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.35);">${nomeJogador}</span>`
@@ -1998,7 +2005,10 @@
                 const tempoJogoFinal = Math.floor((Date.now() - tempoInicio) / 1000);
                 document.getElementById('resultado-final').innerHTML =
                     `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogoFinal)}`;
-                if (getNomeContaAtual()) {
+                if (_usuarioLogado) {
+                    document.getElementById('submit-status').textContent = 'Salvando automaticamente com conta Google...';
+                    // Evita ficar preso na tela final caso o envio demore/falhe.
+                    habilitarRecomecar();
                     submitScore(false);
                 } else {
                     carregarRanking();
