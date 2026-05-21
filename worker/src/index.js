@@ -35,7 +35,7 @@ async function handleSaveScore(request, env) {
     return json({ error: 'Dados inválidos' }, 400);
   }
 
-  const { nome, pontuacao, tempoJogo, turma } = body;
+  const { nome, pontuacao, tempoJogo, turma, tabuadas } = body;
 
   const doc = {
     fields: {
@@ -43,6 +43,7 @@ async function handleSaveScore(request, env) {
       pontuacao: { integerValue: String(Math.max(0, Math.floor(Number(pontuacao)))) },
       tempoJogo: { integerValue: String(Math.max(0, Math.floor(Number(tempoJogo) || 0))) },
       turma:     { stringValue: String(turma || '').slice(0, 60) },
+      tabuadas:  { stringValue: String(tabuadas || 'todas').slice(0, 20) },
       data:      { timestampValue: new Date().toISOString() },
     },
   };
@@ -122,6 +123,7 @@ async function handleRanking(url, env) {
       pontuacao: Number(r.document.fields.pontuacao?.integerValue ?? 0),
       tempoJogo: Number(r.document.fields.tempoJogo?.integerValue ?? 0),
       turma:     r.document.fields.turma?.stringValue     ?? '',
+      tabuadas:  r.document.fields.tabuadas?.stringValue  ?? 'todas',
       data:      r.document.fields.data?.timestampValue   ?? '',
     }));
 

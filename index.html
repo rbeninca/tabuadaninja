@@ -77,6 +77,17 @@
         }
         #fullscreen-btn:active { background: rgba(255,255,255,0.25); color: white; }
 
+        #install-btn {
+            position: fixed; bottom: 24px; left: 24px;
+            display: none;
+            width: auto; padding: 11px 20px;
+            background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4);
+            color: rgba(255,255,255,0.85); font-size: 14px; border-radius: 12px; cursor: pointer;
+            transition: background 0.2s; letter-spacing: 0.3px; z-index: 100;
+        }
+        #install-btn:hover { background: rgba(16,185,129,0.28); }
+        @media (max-width: 480px) { #install-btn { font-size: 13px; padding: 9px 14px; bottom: 16px; left: 16px; } }
+
         #turma-btn {
             position: fixed; bottom: 24px; right: 24px;
             width: auto; padding: 11px 20px;
@@ -320,6 +331,33 @@
             text-shadow: 0 0 12px #ff0000;
             animation: floatDano 1s ease-out forwards;
         }
+        #tabs-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .tab-check-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 6px 4px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.15);
+            cursor: pointer;
+            font-size: 14px;
+            background: rgba(255,255,255,0.04);
+            user-select: none;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .tab-check-label:has(input:checked) {
+            border-color: var(--primary);
+            background: rgba(109,40,217,0.2);
+        }
+        .tab-check-label input[type=checkbox] {
+            accent-color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -343,6 +381,7 @@
                                     <th style="padding:5px 6px;text-align:left;font-weight:600;">#</th>
                                     <th style="padding:5px 6px;text-align:left;font-weight:600;">Nome</th>
                                     <th style="padding:5px 6px;text-align:right;font-weight:600;">Pts</th>
+                                    <th style="padding:5px 6px;text-align:center;font-weight:600;">Tabs</th>
                                     <th style="padding:5px 6px;text-align:right;font-weight:600;">Tempo</th>
                                     <th style="padding:5px 6px;text-align:right;font-weight:600;">Data</th>
                                 </tr>
@@ -407,6 +446,16 @@
                         </div>
                     </div>
                 </details>
+                <div class="field" style="margin-top:14px;">
+                    <label>Tabuadas:</label>
+                    <div class="toggle-group" id="tabs-presets" style="flex-wrap:wrap;gap:5px;">
+                        <button class="toggle-opt" onclick="setTabuadasPreset([2])">Só 2</button>
+                        <button class="toggle-opt" onclick="setTabuadasPreset([3])">Só 3</button>
+                        <button class="toggle-opt" onclick="setTabuadasPreset([2,3,4,5])">2 a 5</button>
+                        <button class="toggle-opt active" onclick="setTabuadasPreset([2,3,4,5,6,7,8,9])">Todas</button>
+                    </div>
+                    <div id="tabs-checkboxes"></div>
+                </div>
                 <p style="font-size:14px;color:#888;margin-top:10px;">
                     Dica: <span class="hint-desktop">Segure <b>ESPAÇO</b></span><span class="hint-mobile">Segure o botão <b>⌛</b></span> para Câmera Lenta!
                 </p>
@@ -454,6 +503,7 @@
 
     <div id="matrix-btn" style="display: none;">⌛</div>
     <div id="fullscreen-btn" onclick="pedirTelaCheia()" title="Tela cheia">⛶</div>
+    <button id="install-btn" onclick="instalarApp()">📲 Instalar app</button>
     <button id="turma-btn" onclick="abrirModalTurma()">🔗 Link de turma</button>
 
     <div id="turma-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(2,6,23,0.92);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
@@ -499,6 +549,7 @@
                                 <th style="padding:6px 6px;text-align:left;font-weight:600;">#</th>
                                 <th style="padding:6px 6px;text-align:left;font-weight:600;">Nome</th>
                                 <th style="padding:6px 6px;text-align:right;font-weight:600;">Pts</th>
+                                <th style="padding:6px 6px;text-align:center;font-weight:600;">Tabs</th>
                                 <th style="padding:6px 6px;text-align:right;font-weight:600;">Tempo</th>
                                 <th style="padding:6px 6px;text-align:right;font-weight:600;">Data</th>
                             </tr>
@@ -520,7 +571,7 @@
     const WORKER_URL = 'https://tabuada-ninja-api.rbeninca.workers.dev';
     const TURMA = new URLSearchParams(location.search).get('turma') || '';
 
-    let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10 };
+    let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10, tabuadas: [2,3,4,5,6,7,8,9] };
     let tempoInicio = 0;
     let score = 0;
     let scoreJaSalvo = false;
@@ -719,6 +770,63 @@
         updateBarraAcertos();
     }
 
+    function buildTabsCheckboxes() {
+        const container = document.getElementById('tabs-checkboxes');
+        if (!container) return;
+        container.innerHTML = '';
+        for (let n = 2; n <= 9; n++) {
+            const label = document.createElement('label');
+            label.className = 'tab-check-label';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = n;
+            cb.id = `tab-cb-${n}`;
+            cb.checked = true;
+            cb.addEventListener('change', syncTabPresets);
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(` ${n}`));
+            container.appendChild(label);
+        }
+    }
+
+    function setTabuadasPreset(arr) {
+        for (let n = 2; n <= 9; n++) {
+            const cb = document.getElementById(`tab-cb-${n}`);
+            if (cb) cb.checked = arr.includes(n);
+        }
+        syncTabPresets();
+    }
+
+    function syncTabPresets() {
+        const sel = getTabuadasSelecionadas();
+        const presets = [[2], [3], [2,3,4,5], [2,3,4,5,6,7,8,9]];
+        document.querySelectorAll('#tabs-presets .toggle-opt').forEach((btn, i) => {
+            const p = presets[i];
+            const match = p.length === sel.length && p.every(v => sel.includes(v));
+            btn.classList.toggle('active', match);
+        });
+    }
+
+    function getTabuadasSelecionadas() {
+        const checked = [];
+        for (let n = 2; n <= 9; n++) {
+            const cb = document.getElementById(`tab-cb-${n}`);
+            if (cb && cb.checked) checked.push(n);
+        }
+        return checked.length ? checked : [2,3,4,5,6,7,8,9];
+    }
+
+    function formatTabuadas(arr) {
+        if (!arr || arr.length >= 8) return 'todas';
+        if (arr.length === 1) return String(arr[0]);
+        const sorted = [...arr].sort((a, b) => a - b);
+        let consecutive = true;
+        for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i] !== sorted[i - 1] + 1) { consecutive = false; break; }
+        }
+        return consecutive ? `${sorted[0]}-${sorted[sorted.length - 1]}` : sorted.join(',');
+    }
+
     function rebuildBarraAcertos() {
         const barra = document.getElementById('barra-acertos');
         const meta = config.metaAcertos;
@@ -731,6 +839,10 @@
             d.style.width = segW + 'px';
             barra.appendChild(d);
         }
+        const counter = document.createElement('span');
+        counter.id = 'contador-acertos';
+        counter.style.cssText = 'font-size:11px;margin-left:6px;opacity:0.75;min-width:28px;';
+        barra.appendChild(counter);
     }
 
     function updateBarraAcertos(flash = false) {
@@ -749,6 +861,11 @@
                 seg.style.boxShadow = 'none';
                 seg.style.borderColor = 'rgba(255,255,255,0.15)';
             }
+        }
+        const counter = document.getElementById('contador-acertos');
+        if (counter) {
+            counter.textContent = `${filled}/${meta}`;
+            counter.style.color = cor;
         }
     }
 
@@ -974,6 +1091,21 @@
         });
     }
 
+    function playCountdownSound(restantes) {
+        const ac = getAudio();
+        const freq = restantes === 3 ? 880 : restantes === 2 ? 1050 : 1320;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.connect(gain); gain.connect(ac.destination);
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        const now = ac.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.22, now + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.start(now); osc.stop(now + 0.12);
+    }
+
     function animarDanoVida() {
         const el = document.getElementById('display-vidas');
         el.classList.remove('vida-dano');
@@ -1013,6 +1145,17 @@
     canvas.height = window.innerHeight;
 
     rebuildBarraAcertos();
+    buildTabsCheckboxes();
+    try {
+        const savedTabs = JSON.parse(localStorage.getItem('tabuada_tabs'));
+        if (Array.isArray(savedTabs) && savedTabs.length) {
+            for (let n = 2; n <= 9; n++) {
+                const cb = document.getElementById(`tab-cb-${n}`);
+                if (cb) cb.checked = savedTabs.includes(n);
+            }
+        }
+    } catch {}
+    syncTabPresets();
     initPauseItems();
     (function startScreenLoop() {
         if (!isStartScreen) return;
@@ -1113,7 +1256,7 @@
             await fetch(`${WORKER_URL}/score`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: novoNome, pontuacao: score, tempoJogo, turma: TURMA }),
+                body: JSON.stringify({ nome: novoNome, pontuacao: score, tempoJogo, turma: TURMA, tabuadas: formatTabuadas(config.tabuadas) }),
             });
         } catch {}
 
@@ -1143,7 +1286,7 @@
             const resp = await fetch(`${WORKER_URL}/score`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: config.nome, pontuacao: score, tempoJogo, turma: TURMA }),
+                body: JSON.stringify({ nome: config.nome, pontuacao: score, tempoJogo, turma: TURMA, tabuadas: formatTabuadas(config.tabuadas) }),
             });
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({}));
@@ -1185,6 +1328,7 @@
                 <td style="padding:5px 6px;">${medals[i] ?? `${i+1}º`}</td>
                 <td style="padding:5px 6px;">${r.nome}</td>
                 <td style="padding:5px 6px;text-align:right;">${r.pontuacao}</td>
+                <td style="padding:5px 6px;text-align:center;color:#a78bfa;font-size:11px;">${r.tabuadas || 'todas'}</td>
                 <td style="padding:5px 6px;text-align:right;">${formatTime(r.tempoJogo)}</td>
                 <td style="padding:5px 6px;text-align:right;color:rgba(255,255,255,0.4);font-size:11px;">${formatDate(r)}</td>
             `;
@@ -1227,6 +1371,8 @@
         config.modoInvertido = document.getElementById('modo-select').value;
         const metaBtn = document.querySelector('#meta-toggle .toggle-opt.active');
         config.metaAcertos = metaBtn ? parseInt(metaBtn.dataset.val) : 10;
+        config.tabuadas = getTabuadasSelecionadas();
+        localStorage.setItem('tabuada_tabs', JSON.stringify(config.tabuadas));
         rebuildBarraAcertos();
 
         document.getElementById('menu-inicial').style.display = 'none';
@@ -1262,8 +1408,9 @@
     }
 
     function novaPergunta() {
-        atualPergunta.n1 = Math.floor(Math.random() * 8) + 2;
-        atualPergunta.n2 = Math.floor(Math.random() * 8) + 2;
+        const tabs = config.tabuadas && config.tabuadas.length ? config.tabuadas : [2,3,4,5,6,7,8,9];
+        atualPergunta.n1 = tabs[Math.floor(Math.random() * tabs.length)];
+        atualPergunta.n2 = tabs[Math.floor(Math.random() * tabs.length)];
         atualPergunta.res = atualPergunta.n1 * atualPergunta.n2;
         atualPergunta.invertido = config.modoInvertido === 'sempre'
             ? true
@@ -1400,11 +1547,12 @@
             // Frutas mostram contas; corretas são qualquer a×b = res
             const target = atualPergunta.res;
             const opcoes = [{ txt: `${atualPergunta.n1}×${atualPergunta.n2}`, res: target }];
+            const tabs = config.tabuadas && config.tabuadas.length ? config.tabuadas : [2,3,4,5,6,7,8,9];
             let tentativas = 0;
             while (opcoes.length < numTotal && tentativas < 200) {
                 tentativas++;
-                const a = Math.floor(Math.random() * 8) + 2;
-                const b = Math.floor(Math.random() * 8) + 2;
+                const a = tabs[Math.floor(Math.random() * tabs.length)];
+                const b = tabs[Math.floor(Math.random() * tabs.length)];
                 const txt = `${a}×${b}`;
                 if (!opcoes.find(o => o.txt === txt)) opcoes.push({ txt, res: a * b });
             }
@@ -1441,6 +1589,8 @@
             }
             if (relancamentos < 2) {
                 acertosSeguidos++;
+                const restantes = config.metaAcertos - (acertosSeguidos % config.metaAcertos);
+                if (restantes <= 3 && restantes > 0) playCountdownSound(restantes);
                 if (acertosSeguidos % config.metaAcertos === 0) {
                     updateBarraAcertos(true);
                     milestoneCount++;
@@ -1706,6 +1856,26 @@
         const adv = document.getElementById('advanced-options');
         adv.style.display = 'block';
         adv.open = true;
+    }
+
+    let _installPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        _installPrompt = e;
+        document.getElementById('install-btn').style.display = '';
+    });
+    window.addEventListener('appinstalled', () => {
+        _installPrompt = null;
+        document.getElementById('install-btn').style.display = 'none';
+    });
+    async function instalarApp() {
+        if (!_installPrompt) return;
+        _installPrompt.prompt();
+        const { outcome } = await _installPrompt.userChoice;
+        if (outcome === 'accepted') {
+            _installPrompt = null;
+            document.getElementById('install-btn').style.display = 'none';
+        }
     }
 
 </script>
