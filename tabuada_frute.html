@@ -138,36 +138,73 @@
         return audioCtx;
     }
 
-    function playSuccessSound() {
+    function playSliceSound() {
         const ac = getAudio();
         const now = ac.currentTime;
 
-        // Whoosh de corte
-        const buf = ac.createBuffer(1, ac.sampleRate * 0.12, ac.sampleRate);
+        // Swish: ruído varrendo de baixo para cima (lâmina cortando o ar)
+        const bufLen = Math.floor(ac.sampleRate * 0.13);
+        const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
         const d = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-        const noise = ac.createBufferSource();
-        noise.buffer = buf;
-        const hpf = ac.createBiquadFilter();
-        hpf.type = 'highpass'; hpf.frequency.value = 1800;
-        const ng = ac.createGain();
-        ng.gain.setValueAtTime(0.7, now);
-        ng.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        noise.connect(hpf); hpf.connect(ng); ng.connect(ac.destination);
-        noise.start(now);
+        for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 0.4);
+        const swish = ac.createBufferSource();
+        swish.buffer = buf;
+        const bpf = ac.createBiquadFilter();
+        bpf.type = 'bandpass'; bpf.Q.value = 1.5;
+        bpf.frequency.setValueAtTime(600, now);
+        bpf.frequency.exponentialRampToValueAtTime(6000, now + 0.08);
+        const sg = ac.createGain();
+        sg.gain.setValueAtTime(1.0, now);
+        sg.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+        swish.connect(bpf); bpf.connect(sg); sg.connect(ac.destination);
+        swish.start(now);
 
+        // Ring metálico: frequências inarmônicas que decaem rápido (som de metal vibrando)
+        [[1800, 0.45, 0.20], [2750, 0.30, 0.15], [4300, 0.18, 0.10]].forEach(([freq, amp, dur]) => {
+            const osc = ac.createOscillator();
+            const g = ac.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(amp, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(g); g.connect(ac.destination);
+            osc.start(now); osc.stop(now + dur + 0.01);
+        });
+    }
+
+    function playSuccessSound() {
+        const ac = getAudio();
+        const now = ac.currentTime;
         // Notas ascendentes: C5 E5 G5 C6
         [523, 659, 784, 1047].forEach((freq, i) => {
             const osc = ac.createOscillator();
             const g = ac.createGain();
             osc.type = 'triangle';
             osc.frequency.value = freq;
-            const t = now + 0.06 + i * 0.09;
+            const t = now + i * 0.09;
             g.gain.setValueAtTime(0, t);
             g.gain.linearRampToValueAtTime(0.28, t + 0.02);
             g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
             osc.connect(g); g.connect(ac.destination);
             osc.start(t); osc.stop(t + 0.25);
+        });
+    }
+
+    function playErrorSound() {
+        const ac = getAudio();
+        const now = ac.currentTime;
+        // Duas notas descendentes em sawtooth — som de punição
+        [360, 240].forEach((freq, i) => {
+            const osc = ac.createOscillator();
+            const g = ac.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now + i * 0.16);
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.65, now + i * 0.16 + 0.18);
+            g.gain.setValueAtTime(0.35, now + i * 0.16);
+            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.16 + 0.2);
+            osc.connect(g); g.connect(ac.destination);
+            osc.start(now + i * 0.16);
+            osc.stop(now + i * 0.16 + 0.22);
         });
     }
 
@@ -337,6 +374,7 @@
                 let d = Math.hypot(p.x - f.x, p.y - f.y);
                 if(d < 55 && !f.sliced) {
                     f.sliced = true;
+                    playSliceSound();
                     if(f.isCorrect) {
                         score += Math.round(questionValue);
                         document.getElementById('display-pontos').innerText = score;
@@ -346,6 +384,7 @@
                         const r = slot.getBoundingClientRect();
                         flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
                     } else {
+                        playErrorSound();
                         efeitos.push({x: f.x, y: f.y, r: 10, alpha: 1});
                         config.vidas--;
                         document.getElementById('display-vidas').innerText = config.vidas;
