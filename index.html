@@ -73,6 +73,18 @@
             transition: background 0.2s, color 0.2s;
         }
         #fullscreen-btn:active { background: rgba(255,255,255,0.25); color: white; }
+
+        #turma-btn {
+            position: fixed; bottom: 24px; right: 24px;
+            width: auto; padding: 11px 20px;
+            background: rgba(52,152,219,0.15); border: 2px solid var(--primary);
+            border-radius: 50px; color: var(--primary); font-size: 14px; font-weight: 700;
+            cursor: pointer; z-index: 1000; user-select: none;
+            transition: background 0.2s; letter-spacing: 0.3px;
+        }
+        #turma-btn:hover { background: rgba(52,152,219,0.3); }
+        @media (max-width: 480px) { #turma-btn { font-size: 13px; padding: 9px 14px; bottom: 16px; right: 16px; } }
+
         @media (max-width: 768px) {
             #fullscreen-btn { width: 48px; height: 48px; font-size: 18px; bottom: 84px; left: 16px; }
             #pause-btn { bottom: 16px; left: 16px; font-size: 15px; padding: 9px 16px; }
@@ -315,8 +327,11 @@
 
             <!-- VIEW 1: Ranking + botões principais -->
             <div id="view-ranking">
+                <div id="turma-banner" style="display:none;background:rgba(52,152,219,0.12);border:1px solid var(--primary);border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:var(--primary);text-align:center;">
+                    🏫 Ranking da turma: <strong id="turma-banner-nome"></strong>
+                </div>
                 <div style="margin-bottom:16px;">
-                    <div style="color:var(--accent);font-size:13px;font-weight:700;letter-spacing:2px;margin-bottom:10px;">🏆 RANKING</div>
+                    <div id="menu-ranking-titulo" style="color:var(--accent);font-size:13px;font-weight:700;letter-spacing:2px;margin-bottom:10px;">🏆 RANKING</div>
                     <div id="menu-ranking-loading" style="font-size:13px;color:rgba(255,255,255,0.3);text-align:center;padding:8px 0;">carregando...</div>
                     <div id="menu-ranking-table" style="max-height:220px;overflow-y:auto;border-radius:8px;border:1px solid #1e293b;display:none;">
                         <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -436,6 +451,31 @@
 
     <div id="matrix-btn" style="display: none;">⌛</div>
     <div id="fullscreen-btn" onclick="pedirTelaCheia()" title="Tela cheia">⛶</div>
+    <button id="turma-btn" onclick="abrirModalTurma()">🔗 Link de turma</button>
+
+    <div id="turma-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(2,6,23,0.92);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+        <div style="background:#0f172a;border:1px solid #334155;border-radius:18px;padding:24px 22px;width:100%;max-width:380px;">
+            <h3 style="margin:0 0 16px;color:var(--accent);font-size:18px;">🔗 Link de turma</h3>
+            <div style="margin-bottom:14px;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5;">
+                Crie um link exclusivo. Alunos que acessarem por ele jogarão em um ranking separado para a turma.
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;margin-bottom:6px;font-size:12px;color:#94a3b8;font-weight:700;">NOME DA TURMA</label>
+                <input type="text" id="turma-link-input" placeholder="ex: turma4a" maxlength="40"
+                    style="width:100%;padding:12px;border-radius:10px;border:1px solid #334155;background:#020617;color:white;font-size:16px;box-sizing:border-box;">
+            </div>
+            <button onclick="gerarLinkTurma()" style="margin-bottom:10px;background:var(--primary);font-size:16px;padding:13px;">Gerar link</button>
+            <div id="turma-link-resultado" style="display:none;margin-bottom:12px;">
+                <label style="display:block;margin-bottom:6px;font-size:12px;color:#94a3b8;font-weight:700;">LINK GERADO</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="turma-link-url" readonly
+                        style="flex:1;padding:10px;border-radius:10px;border:1px solid #334155;background:#020617;color:var(--primary);font-size:13px;box-sizing:border-box;">
+                    <button onclick="copiarLinkTurma()" id="turma-copiar-btn" style="width:auto;padding:10px 16px;font-size:14px;background:var(--success);border-radius:10px;">Copiar</button>
+                </div>
+            </div>
+            <button onclick="fecharModalTurma()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);font-size:15px;padding:11px;color:rgba(255,255,255,0.6);border-radius:10px;">Fechar</button>
+        </div>
+    </div>
 
     <div id="game-over" class="overlay" style="display: none;">
         <div class="card" style="max-width:500px;width:92%;max-height:90vh;overflow-y:auto;">
@@ -475,6 +515,7 @@
     const ctx = canvas.getContext('2d');
     
     const WORKER_URL = 'https://tabuada-ninja-api.rbeninca.workers.dev';
+    const TURMA = new URLSearchParams(location.search).get('turma') || '';
 
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10 };
     let tempoInicio = 0;
@@ -622,6 +663,40 @@
         document.getElementById('confirm-menu').style.display = 'none';
     }
 
+    function abrirModalTurma() {
+        const modal = document.getElementById('turma-modal');
+        modal.style.display = 'flex';
+        if (TURMA) document.getElementById('turma-link-input').value = TURMA;
+    }
+
+    function fecharModalTurma() {
+        document.getElementById('turma-modal').style.display = 'none';
+        document.getElementById('turma-link-resultado').style.display = 'none';
+    }
+
+    function gerarLinkTurma() {
+        const nome = document.getElementById('turma-link-input').value.trim();
+        if (!nome) return;
+        const base = location.origin + location.pathname;
+        const url = `${base}?turma=${encodeURIComponent(nome)}`;
+        document.getElementById('turma-link-url').value = url;
+        document.getElementById('turma-link-resultado').style.display = 'block';
+        document.getElementById('turma-copiar-btn').textContent = 'Copiar';
+    }
+
+    async function copiarLinkTurma() {
+        const url = document.getElementById('turma-link-url').value;
+        const btn = document.getElementById('turma-copiar-btn');
+        try {
+            await navigator.clipboard.writeText(url);
+        } catch {
+            const el = document.getElementById('turma-link-url');
+            el.select(); document.execCommand('copy');
+        }
+        btn.textContent = '✓ Copiado!';
+        setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
+    }
+
     function mostrarView(id) {
         ['view-ranking','view-config','view-creditos'].forEach(v =>
             document.getElementById(v).style.display = 'none');
@@ -696,6 +771,7 @@
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
         document.getElementById('menu-inicial').style.display = 'flex';
+        document.getElementById('turma-btn').style.display = '';
         mostrarRanking();
         isStartScreen = true;
         carregarRankingMenu();
@@ -948,7 +1024,7 @@
     }
 
     // ── Cache incremental de ranking ──────────────────────────────────────────
-    const RANKING_CACHE_KEY = 'tabuada_ranking_v2';
+    const RANKING_CACHE_KEY = TURMA ? `tabuada_ranking_v2_${TURMA}` : 'tabuada_ranking_v2';
 
     function getCacheRanking() {
         try { return JSON.parse(localStorage.getItem(RANKING_CACHE_KEY)) || null; }
@@ -963,7 +1039,8 @@
     // Verifica o timestamp do registro mais recente no servidor — 1 leitura.
     async function fetchLastUpdate() {
         try {
-            const resp = await fetch(`${WORKER_URL}/ranking/last-update`);
+            const qs = TURMA ? `?turma=${encodeURIComponent(TURMA)}` : '';
+            const resp = await fetch(`${WORKER_URL}/ranking/last-update${qs}`);
             if (!resp.ok) return null;
             return (await resp.json()).updatedAt ?? null;
         } catch { return null; }
@@ -983,9 +1060,11 @@
 
         // Busca apenas registros mais novos que o cache
         const since = cache?.newestTs;
-        const url = since
-            ? `${WORKER_URL}/ranking?since=${encodeURIComponent(since)}`
-            : `${WORKER_URL}/ranking`;
+        const params = new URLSearchParams();
+        if (since) params.set('since', since);
+        if (TURMA) params.set('turma', TURMA);
+        const qs = params.toString();
+        const url = qs ? `${WORKER_URL}/ranking?${qs}` : `${WORKER_URL}/ranking`;
 
         let novos = [];
         try {
@@ -994,6 +1073,9 @@
         } catch {}
 
         if (!Array.isArray(novos)) novos = [];
+
+        // Segunda barreira: descarta registros de turma errada antes de cachear
+        if (TURMA) novos = novos.filter(r => r.turma === TURMA);
 
         const merged = cache ? [...cache.records, ...novos] : novos;
         // Deduplica por timestamp — evita duplicatas caso o mesmo registro seja buscado mais de uma vez
@@ -1027,7 +1109,7 @@
             await fetch(`${WORKER_URL}/score`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: novoNome, pontuacao: score, tempoJogo }),
+                body: JSON.stringify({ nome: novoNome, pontuacao: score, tempoJogo, turma: TURMA }),
             });
         } catch {}
 
@@ -1052,7 +1134,7 @@
             const resp = await fetch(`${WORKER_URL}/score`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: config.nome, pontuacao: score, tempoJogo }),
+                body: JSON.stringify({ nome: config.nome, pontuacao: score, tempoJogo, turma: TURMA }),
             });
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({}));
@@ -1139,6 +1221,7 @@
         rebuildBarraAcertos();
 
         document.getElementById('menu-inicial').style.display = 'none';
+        document.getElementById('turma-btn').style.display = 'none';
         document.getElementById('game-ui').style.display = 'flex';
         document.getElementById('pergunta-container').style.display = 'block';
         document.getElementById('matrix-btn').style.display = 'flex';
@@ -1600,6 +1683,13 @@
     // Restaura último nome
     const ultimoNome = localStorage.getItem('tabuada_nome');
     if (ultimoNome) document.getElementById('nome-input').value = ultimoNome;
+
+    // Turma: banner e título de ranking
+    if (TURMA) {
+        document.getElementById('turma-banner').style.display = 'block';
+        document.getElementById('turma-banner-nome').textContent = TURMA;
+        document.getElementById('menu-ranking-titulo').textContent = `🏆 RANKING · ${TURMA.toUpperCase()}`;
+    }
 
     if (new URLSearchParams(location.search).get('menu') === 'true') {
         const adv = document.getElementById('advanced-options');

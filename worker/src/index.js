@@ -17,7 +17,7 @@ export default {
         return await handleSaveScore(request, env);
       }
       if (url.pathname === '/ranking/last-update' && request.method === 'GET') {
-        return await handleLastUpdate(env);
+        return await handleLastUpdate(url, env);
       }
       if (url.pathname === '/ranking' && request.method === 'GET') {
         return await handleRanking(url, env);
@@ -35,13 +35,14 @@ async function handleSaveScore(request, env) {
     return json({ error: 'Dados inválidos' }, 400);
   }
 
-  const { nome, pontuacao, tempoJogo } = body;
+  const { nome, pontuacao, tempoJogo, turma } = body;
 
   const doc = {
     fields: {
       nome:      { stringValue: String(nome).slice(0, 60) },
       pontuacao: { integerValue: String(Math.max(0, Math.floor(Number(pontuacao)))) },
       tempoJogo: { integerValue: String(Math.max(0, Math.floor(Number(tempoJogo) || 0))) },
+      turma:     { stringValue: String(turma || '').slice(0, 60) },
       data:      { timestampValue: new Date().toISOString() },
     },
   };
@@ -57,17 +58,24 @@ async function handleSaveScore(request, env) {
 }
 
 // Retorna apenas o timestamp do registro mais recente — 1 leitura no Firestore.
-async function handleLastUpdate(env) {
-  const query = {
-    structuredQuery: {
-      from: [{ collectionId: 'scores' }],
-      orderBy: [{ field: { fieldPath: 'data' }, direction: 'DESCENDING' }],
-      limit: 1,
-      select: { fields: [{ fieldPath: 'data' }] },
-    },
+// Com ?turma=X filtra pelo turma (requer índice composto turma + data).
+async function handleLastUpdate(url, env) {
+  const turma = url.searchParams.get('turma') || '';
+
+  const structured = {
+    from: [{ collectionId: 'scores' }],
+    orderBy: [{ field: { fieldPath: 'data' }, direction: 'DESCENDING' }],
+    limit: 1,
+    select: { fields: [{ fieldPath: 'data' }] },
   };
 
-  const resp = await firestoreQuery(env, query);
+  if (turma) {
+    structured.where = {
+      fieldFilter: { field: { fieldPath: 'turma' }, op: 'EQUAL', value: { stringValue: turma } },
+    };
+  }
+
+  const resp = await firestoreQuery(env, { structuredQuery: structured });
   if (!resp.ok) return json({ updatedAt: null });
 
   const data = await resp.json();
@@ -78,23 +86,33 @@ async function handleLastUpdate(env) {
 }
 
 // Retorna registros ordenados por data ASC.
-// Com ?since=<isoTimestamp> retorna apenas os mais novos que esse timestamp.
+// Com ?since=<iso> retorna apenas os mais novos que esse timestamp.
+// Com ?turma=X filtra pela turma (requer índice composto turma + data no Firestore).
 async function handleRanking(url, env) {
   const since = url.searchParams.get('since');
+  const turma = url.searchParams.get('turma') || '';
 
   const structured = {
     from: [{ collectionId: 'scores' }],
     orderBy: [{ field: { fieldPath: 'data' }, direction: 'ASCENDING' }],
   };
 
+  const filters = [];
+  if (turma) {
+    filters.push({
+      fieldFilter: { field: { fieldPath: 'turma' }, op: 'EQUAL', value: { stringValue: turma } },
+    });
+  }
   if (since) {
-    structured.where = {
-      fieldFilter: {
-        field: { fieldPath: 'data' },
-        op: 'GREATER_THAN',
-        value: { timestampValue: since },
-      },
-    };
+    filters.push({
+      fieldFilter: { field: { fieldPath: 'data' }, op: 'GREATER_THAN', value: { timestampValue: since } },
+    });
+  }
+
+  if (filters.length === 1) {
+    structured.where = filters[0];
+  } else if (filters.length > 1) {
+    structured.where = { compositeFilter: { op: 'AND', filters } };
   }
 
   const resp = await firestoreQuery(env, { structuredQuery: structured });
@@ -109,6 +127,7 @@ async function handleRanking(url, env) {
       nome:      r.document.fields.nome?.stringValue      ?? '?',
       pontuacao: Number(r.document.fields.pontuacao?.integerValue ?? 0),
       tempoJogo: Number(r.document.fields.tempoJogo?.integerValue ?? 0),
+      turma:     r.document.fields.turma?.stringValue     ?? '',
       data:      r.document.fields.data?.timestampValue   ?? '',
     }));
 
