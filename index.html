@@ -1946,24 +1946,37 @@
     }
 
     let _installPrompt = null;
+
+    function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function atualizarVisibilidadeInstalar() {
+        const btn = document.getElementById('install-btn');
+        btn.style.display = isStandalone() ? 'none' : '';
+    }
+
     window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
         _installPrompt = e;
-        document.getElementById('install-btn').style.display = '';
+        atualizarVisibilidadeInstalar();
         document.getElementById('pwa-debug').textContent = '✅ pronto para instalar';
     });
     window.addEventListener('appinstalled', () => {
         _installPrompt = null;
-        document.getElementById('install-btn').style.display = 'none';
+        atualizarVisibilidadeInstalar();
         document.getElementById('pwa-debug').textContent = '✅ instalado';
     });
     async function instalarApp() {
-        if (!_installPrompt) return;
+        if (!_installPrompt) {
+            document.getElementById('pwa-debug').textContent = 'ℹ Use o menu do navegador: Instalar app';
+            return;
+        }
         _installPrompt.prompt();
         const { outcome } = await _installPrompt.userChoice;
         if (outcome === 'accepted') {
             _installPrompt = null;
-            document.getElementById('install-btn').style.display = 'none';
+            atualizarVisibilidadeInstalar();
         }
     }
     // diagnóstico temporário
@@ -1975,6 +1988,7 @@
     } else {
         _dbg.textContent = '❌ SW não suportado';
     }
+    atualizarVisibilidadeInstalar();
     setTimeout(() => {
         if (!_installPrompt) _dbg.textContent += ' (prompt não veio em 5s)';
     }, 5000);
