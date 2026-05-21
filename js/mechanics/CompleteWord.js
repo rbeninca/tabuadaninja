@@ -1,5 +1,19 @@
-function render(question, container, onAnswer) {
+import SpeechCtrl from '../ui/SpeechCtrl.js'
+
+let isFirstQuestion = true;
+
+
+function render(question, container, onAnswer, opts = {}) {
   const displayTemplate = question.wordTemplate.replace('__', '_')
+  const fullWord = question.wordTemplate.replace('__', question.correct);
+  if (opts.showInstruction && opts.instruction) {
+    SpeechCtrl.speak(`${opts.instruction} ${fullWord}`);
+  } else if (opts.showInstruction) {
+    SpeechCtrl.speak(`${question.instruction}. ${fullWord}`);
+  } else {
+    SpeechCtrl.speak(fullWord);
+  }
+  isFirstQuestion = false;
 
   container.innerHTML = `
     <div class="question-instruction">${question.instruction}</div>
@@ -22,9 +36,8 @@ function render(question, container, onAnswer) {
   container.querySelectorAll('.letter-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       const chosen = btn.dataset.letter
+      SpeechCtrl.speak(chosen)
       const isCorrect = chosen === question.correct
-
-      container.querySelectorAll('.letter-chip').forEach(b => b.disabled = true)
 
       const display = document.getElementById('word-display')
       if (display) {
@@ -44,9 +57,20 @@ function render(question, container, onAnswer) {
         }, 300)
       } else if (!isCorrect) {
         btn.classList.add('anim-shake')
+        setTimeout(() => {
+          btn.classList.remove('anim-shake')
+          btn.style.background = ''
+          btn.style.borderColor = ''
+          if (display) {
+            display.innerHTML = buildWordDisplay(question.wordTemplate, '')
+            display.style.color = ''
+          }
+        }, 700)
+        return // Do not advance
       }
 
-      setTimeout(() => onAnswer(isCorrect, question), 900)
+      // Only advance if correct
+      setTimeout(() => onAnswer(true, question), 900)
     })
   })
 }

@@ -1,4 +1,11 @@
-function render(question, container, onAnswer) {
+import SpeechCtrl from '../ui/SpeechCtrl.js'
+
+
+function render(question, container, onAnswer, opts = {}) {
+  if (opts.showInstruction && opts.instruction) {
+    SpeechCtrl.speak(opts.instruction)
+  }
+
   container.innerHTML = `
     <div class="question-instruction">${question.instruction}</div>
 
@@ -18,25 +25,27 @@ function render(question, container, onAnswer) {
   container.querySelectorAll('.sentence-word').forEach(btn => {
     btn.addEventListener('click', () => {
       const chosen = btn.dataset.word
+      SpeechCtrl.speak(chosen)
       const isCorrect = chosen === question.correct
-
-      container.querySelectorAll('.sentence-word').forEach(b => {
-        b.style.pointerEvents = 'none'
-        if (b.dataset.word === question.correct) {
-          b.style.background = '#C8E6C9'
-          b.style.borderColor = '#2E7D32'
-        }
-      })
 
       if (!isCorrect) {
         btn.style.background = '#FFCDD2'
         btn.style.borderColor = '#C62828'
         btn.classList.add('anim-shake')
+        setTimeout(() => btn.classList.remove('anim-shake'), 500)
+        // Do not disable buttons or advance
       } else {
+        // Highlight correct and disable all
+        container.querySelectorAll('.sentence-word').forEach(b => {
+          b.style.pointerEvents = 'none'
+          if (b.dataset.word === question.correct) {
+            b.style.background = '#C8E6C9'
+            b.style.borderColor = '#2E7D32'
+          }
+        })
         btn.classList.add('anim-bounce')
+        setTimeout(() => onAnswer(true, question), 600)
       }
-
-      setTimeout(() => onAnswer(isCorrect, question), 600)
     })
   })
 }

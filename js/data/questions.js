@@ -615,6 +615,46 @@ const rawQuestions = [
     correct: 'curiosa',
     explanation: '"Curiosa" caracteriza a pesquisadora. Palavra que caracteriza é adjetivo.'
   },
+  {
+    id: 'q421', levelId: 4, type: 'build-sentence',
+    category: 'frases_complexas',
+    instruction: 'Monte a frase correta com as palavras abaixo.',
+    words: ['O', 'cachorro', 'brincava', 'alegremente', 'no', 'jardim', '.'],
+    correctSentence: 'O cachorro brincava alegremente no jardim.',
+    explanation: 'Monte a frase descrevendo o que o cachorro fazia no jardim.'
+  },
+  {
+    id: 'q422', levelId: 4, type: 'build-sentence',
+    category: 'frases_complexas',
+    instruction: 'Monte a frase correta com as palavras abaixo.',
+    words: ['A', 'menina', 'leu', 'um', 'livro', 'interessante', 'ontem', '.'],
+    correctSentence: 'A menina leu um livro interessante ontem.',
+    explanation: 'Monte a frase descrevendo o que a menina fez ontem.'
+  },
+  {
+    id: 'q423', levelId: 4, type: 'build-sentence',
+    category: 'frases_complexas',
+    instruction: 'Monte a frase correta com as palavras abaixo.',
+    words: ['Durante', 'a', 'viagem', ',', 'eles', 'tiraram', 'muitas', 'fotos', '.'],
+    correctSentence: 'Durante a viagem, eles tiraram muitas fotos.',
+    explanation: 'Monte a frase descrevendo o que aconteceu durante a viagem.'
+  },
+  {
+    id: 'q424', levelId: 4, type: 'build-sentence',
+    category: 'frases_complexas',
+    instruction: 'Monte a frase correta com as palavras abaixo.',
+    words: ['O', 'gato', 'dormia', 'tranquilamente', 'em', 'cima', 'do', 'sofá', '.'],
+    correctSentence: 'O gato dormia tranquilamente em cima do sofá.',
+    explanation: 'Monte a frase descrevendo onde o gato dormia.'
+  },
+  {
+    id: 'q425', levelId: 4, type: 'build-sentence',
+    category: 'frases_complexas',
+    instruction: 'Monte a frase correta com as palavras abaixo.',
+    words: ['Eles', 'foram', 'ao', 'cinema', 'assistir', 'a', 'um', 'filme', 'de', 'ação', '.'],
+    correctSentence: 'Eles foram ao cinema assistir a um filme de ação.',
+    explanation: 'Monte a frase descrevendo o que eles fizeram no cinema.'
+  },
 
   // ==================== FASE 5 — Montanha das Ações ====================
   {

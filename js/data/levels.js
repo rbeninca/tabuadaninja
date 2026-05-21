@@ -8,7 +8,8 @@ export const levels = [
     categories: ['substantivo_proprio', 'substantivo_comum'],
     reward: 'Chapéu de Explorador',
     backgroundImg: 'imgens/backgrounds/fase-1.png',
-    backgroundColor: '#87CEEB'
+    backgroundColor: '#87CEEB',
+    instruction: 'Substantivo próprio nomeia um ser específico, como Ana ou Brasil. Substantivo comum nomeia seres em geral, como cidade e cachorro.'
   },
   {
     id: 2,
@@ -19,7 +20,8 @@ export const levels = [
     categories: ['substantivo_coletivo'],
     reward: 'Papagaio Professor',
     backgroundImg: 'imgens/backgrounds/fase-2.png',
-    backgroundColor: '#228B22'
+    backgroundColor: '#228B22',
+    instruction: 'Substantivo coletivo é uma palavra no singular que indica um conjunto de seres da mesma espécie, como cardume de peixes e enxame de abelhas.'
   },
   {
     id: 3,
@@ -30,7 +32,8 @@ export const levels = [
     categories: ['substantivo_concreto', 'substantivo_abstrato'],
     reward: 'Bússola Mágica',
     backgroundImg: 'imgens/backgrounds/fase-3.png',
-    backgroundColor: '#4B0082'
+    backgroundColor: '#4B0082',
+    instruction: 'Substantivo concreto nomeia seres que existem por si, reais ou imaginários. Substantivo abstrato nomeia sentimentos, qualidades, estados e ideias.'
   },
   {
     id: 4,
@@ -41,7 +44,8 @@ export const levels = [
     categories: ['adjetivo'],
     reward: 'Macaco das Palavras',
     backgroundImg: 'imgens/backgrounds/fase-4.png',
-    backgroundColor: '#FF69B4'
+    backgroundColor: '#FF69B4',
+    instruction: 'Adjetivo é a palavra que caracteriza o substantivo, indicando qualidade, aparência, estado ou modo de ser.'
   },
   {
     id: 5,
@@ -52,7 +56,8 @@ export const levels = [
     categories: ['verbo'],
     reward: 'Estrela Dourada',
     backgroundImg: 'imgens/backgrounds/fase-5.png',
-    backgroundColor: '#8B4513'
+    backgroundColor: '#8B4513',
+    instruction: 'Verbo é a palavra que indica ação, estado ou fenômeno e se relaciona ao tempo da frase.'
   },
   {
     id: 6,
@@ -63,7 +68,8 @@ export const levels = [
     categories: ['ortografia_c_s_cedilha'],
     reward: 'Medalha da Ilha',
     backgroundImg: 'imgens/backgrounds/fase-6.png',
-    backgroundColor: '#00CED1'
+    backgroundColor: '#00CED1',
+    instruction: 'Na ortografia, usamos c, s ou ç conforme o som e a posição na palavra. O ç representa som de s antes de a, o e u.'
   },
   {
     id: 7,
@@ -78,7 +84,8 @@ export const levels = [
     ],
     reward: 'Coroa da Sabedoria',
     backgroundImg: 'imgens/backgrounds/fase-7.png',
-    backgroundColor: '#8B0000'
+    backgroundColor: '#8B0000',
+    instruction: 'Revisão geral: aplique substantivos, coletivos, concreto e abstrato, adjetivos, verbos e ortografia com c, s e ç para resolver os desafios.'
   }
 ]
 

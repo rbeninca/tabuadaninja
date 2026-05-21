@@ -2,50 +2,20 @@ import Router from '../core/Router.js'
 import Storage from '../storage/Storage.js'
 import GameState from '../core/GameState.js'
 import ProgressionEngine from '../engine/ProgressionEngine.js'
+import SpeechCtrl from '../ui/SpeechCtrl.js'
 
 function saveVoicePreference(voiceGender) {
   GameState.set({ voiceGender })
   ProgressionEngine.persistProgress()
 }
 
-function getPtVoices(voices = []) {
-  return voices.filter(v => v.lang?.toLowerCase() === 'pt-br' || v.lang?.toLowerCase().startsWith('pt'))
-}
-
-function getVoiceByGender(voices = [], voiceGender = 'feminina') {
-  const ptVoices = getPtVoices(voices)
-  if (ptVoices.length === 0) return null
-
-  const femaleHints = ['female', 'feminina', 'mulher', 'woman', 'maria', 'luciana', 'brenda']
-  const maleHints = ['male', 'masculina', 'homem', 'man', 'ricardo', 'antonio', 'paulo']
-  const hints = voiceGender === 'masculina' ? maleHints : femaleHints
-
-  const matched = ptVoices.find((voice) => {
-    const name = (voice.name || '').toLowerCase()
-    return hints.some(hint => name.includes(hint))
-  })
-
-  return matched || ptVoices[0]
-}
-
 function speakPreview(voiceGender) {
-  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+  if (!SpeechCtrl.isSupported()) {
     alert('Seu navegador não suporta leitura de voz. Use Chrome atualizado para testar.')
     return
   }
 
-  try {
-    const utterance = new SpeechSynthesisUtterance('Olá! Vamos explorar a Ilha Mágica das Palavras.')
-    utterance.lang = 'pt-BR'
-    utterance.rate = 0.95
-    utterance.pitch = 1
-
-    const voice = getVoiceByGender(window.speechSynthesis.getVoices(), voiceGender)
-    if (voice) utterance.voice = voice
-
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(utterance)
-  } catch {}
+  SpeechCtrl.speak('Olá! Vamos explorar a Ilha Mágica das Palavras.', { voiceGender })
 }
 
 function render() {

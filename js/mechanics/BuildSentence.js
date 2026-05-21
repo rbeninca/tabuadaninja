@@ -1,3 +1,5 @@
+import SpeechCtrl from '../ui/SpeechCtrl.js'
+
 function shuffle(arr) {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -7,9 +9,19 @@ function shuffle(arr) {
   return a
 }
 
-function render(question, container, onAnswer) {
+function normalizeSentence(text = '') {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim()
+}
+
+
+function render(question, container, onAnswer, opts = {}) {
   const shuffled = shuffle([...question.words])
   let builtSentence = []
+
 
   const rerender = () => {
     container.innerHTML = `
@@ -43,14 +55,23 @@ function render(question, container, onAnswer) {
 
     document.getElementById('btn-check-sentence')?.addEventListener('click', () => {
       const built = builtSentence.join(' ')
-      const isCorrect = built === question.correctSentence ||
-        built.toLowerCase().replace(/\.$/, '') === question.correctSentence.toLowerCase().replace(/\.$/, '')
-      onAnswer(isCorrect, question)
+      const isCorrect = normalizeSentence(built) === normalizeSentence(question.correctSentence)
+      if (isCorrect) {
+        onAnswer(true, question)
+      } else {
+        // Visual feedback only, allow retry
+        const area = document.getElementById('sentence-area')
+        if (area) {
+          area.classList.add('anim-shake')
+          setTimeout(() => area.classList.remove('anim-shake'), 500)
+        }
+      }
     })
 
     // Click words from bank → add to sentence
     container.querySelectorAll('#word-bank .word-chip').forEach(btn => {
       btn.addEventListener('click', () => {
+        SpeechCtrl.speak(btn.dataset.word)
         builtSentence.push(btn.dataset.word)
         rerender()
       })
@@ -59,6 +80,7 @@ function render(question, container, onAnswer) {
     // Click words in sentence → remove
     container.querySelectorAll('#sentence-area .word-chip').forEach(btn => {
       btn.addEventListener('click', () => {
+        SpeechCtrl.speak(btn.dataset.word)
         const idx = parseInt(btn.dataset.idx)
         builtSentence.splice(idx, 1)
         rerender()
@@ -66,7 +88,14 @@ function render(question, container, onAnswer) {
     })
   }
 
+  // Renderiza imediatamente para evitar tela vazia enquanto a fala termina.
   rerender()
+
+  if (opts.showInstruction && opts.instruction) {
+    SpeechCtrl.speak(opts.instruction)
+  } else if (opts.showInstruction) {
+    SpeechCtrl.speak(question.instruction)
+  }
 }
 
 export default { render }

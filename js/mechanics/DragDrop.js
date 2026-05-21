@@ -1,14 +1,21 @@
+import SpeechCtrl from '../ui/SpeechCtrl.js'
+
 let draggedItem = null
 let answeredCorrectly = 0
 let onAnswerCallback = null
 let currentQuestion = null
 let finished = false
 
-function render(question, container, onAnswer) {
+
+function render(question, container, onAnswer, opts = {}) {
   currentQuestion = question
   onAnswerCallback = onAnswer
   answeredCorrectly = 0
   finished = false
+
+  if (opts.showInstruction && opts.instruction) {
+    SpeechCtrl.speak(opts.instruction)
+  }
 
   container.innerHTML = `
     <div class="question-instruction">${question.instruction}</div>
@@ -44,6 +51,7 @@ function bindEvents(container, question) {
   // Mouse events
   container.querySelectorAll('.word-chip').forEach(chip => {
     chip.addEventListener('dragstart', e => {
+      SpeechCtrl.speak(chip.dataset.text)
       draggedItem = chip
       chip.classList.add('dragging')
       e.dataTransfer.effectAllowed = 'move'
@@ -52,6 +60,7 @@ function bindEvents(container, question) {
       chip.classList.remove('dragging')
       draggedItem = null
     })
+    chip.addEventListener('click', () => SpeechCtrl.speak(chip.dataset.text))
     // Touch events
     chip.addEventListener('touchstart', touchStart, { passive: true })
     chip.addEventListener('touchmove', touchMove, { passive: false })
@@ -91,10 +100,15 @@ function handleDrop(chip, zone, question) {
       setTimeout(() => onAnswerCallback(true, question), 400)
     }
   } else {
-    finished = true
+    // Only give feedback, allow retry
     chip.classList.add('anim-shake')
-    setTimeout(() => chip.classList.remove('anim-shake'), 500)
-    onAnswerCallback(false, question)
+    setTimeout(() => {
+      chip.classList.remove('anim-shake')
+      chip.classList.remove('wrong')
+      chip.setAttribute('draggable', 'true')
+      chip.style.cursor = 'grab'
+    }, 500)
+    // Do not finish or advance
   }
 }
 
@@ -104,6 +118,7 @@ let touchOrigin = null
 
 function touchStart(e) {
   const chip = e.currentTarget
+  SpeechCtrl.speak(chip.dataset.text)
   touchOrigin = chip
   const rect = chip.getBoundingClientRect()
   touchClone = chip.cloneNode(true)

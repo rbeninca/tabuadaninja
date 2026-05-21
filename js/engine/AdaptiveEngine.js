@@ -44,10 +44,22 @@ function getQuestionsForLevel(levelId, errors = {}, count = TOTAL_QUESTIONS_PER_
   const pool = getQuestionsByLevel(levelId)
   if (pool.length === 0) return []
 
-  const weighted = progressiveWeightedPool(pool, errors)
-  const seen = new Set()
-  const result = []
+  // Separe build-sentence e demais
+  const buildSentenceQs = pool.filter(q => q.type === 'build-sentence')
+  const otherQs = pool.filter(q => q.type !== 'build-sentence')
 
+  let result = []
+  const seen = new Set()
+
+  // Sempre inclui uma build-sentence se houver
+  if (buildSentenceQs.length > 0) {
+    const shuffledBuild = shuffle(buildSentenceQs)
+    result.push(shuffledBuild[0])
+    seen.add(shuffledBuild[0].id)
+  }
+
+  // Preenche o resto normalmente, evitando duplicar build-sentence
+  const weighted = progressiveWeightedPool(pool, errors)
   for (const q of weighted) {
     if (!seen.has(q.id)) {
       seen.add(q.id)
@@ -61,7 +73,10 @@ function getQuestionsForLevel(levelId, errors = {}, count = TOTAL_QUESTIONS_PER_
     const extras = shuffle(pool)
     for (const q of extras) {
       if (result.length >= count) break
-      result.push(q)
+      if (!seen.has(q.id)) {
+        seen.add(q.id)
+        result.push(q)
+      }
     }
   }
 

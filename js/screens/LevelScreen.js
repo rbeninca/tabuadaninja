@@ -16,6 +16,7 @@ import BuildSentence from '../mechanics/BuildSentence.js'
 let currentQuestions = []
 let currentIndex = 0
 let levelId = null
+let spokenQuestionTypes = new Set()
 
 const MECHANICS = {
   'drag-category': DragDrop,
@@ -39,6 +40,7 @@ function render(params = {}) {
 
   GameState.startLevel(levelId)
   currentIndex = 0
+  spokenQuestionTypes = new Set()
 
   const bg = document.getElementById('level-bg')
   if (bg) {
@@ -92,8 +94,24 @@ function renderQuestion(question) {
   if (!area) return
 
   const mechanic = MECHANICS[question.type]
+  const level = getLevelById(levelId)
+
+  const speechParts = []
+  if (currentIndex === 0 && level?.instruction) {
+    speechParts.push(level.instruction)
+  }
+
+  const shouldSpeakQuestionInstruction = !spokenQuestionTypes.has(question.type)
+  if (shouldSpeakQuestionInstruction && question?.instruction) {
+    speechParts.push(question.instruction)
+    spokenQuestionTypes.add(question.type)
+  }
+
+  const instruction = speechParts.join(' ')
+  const showInstruction = instruction.length > 0
+
   if (mechanic) {
-    mechanic.render(question, area, handleAnswer)
+    mechanic.render(question, area, handleAnswer, { showInstruction, instruction })
   } else {
     area.innerHTML = `<p style="color:red;">Tipo de questão desconhecido: ${question.type}</p>`
   }
