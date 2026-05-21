@@ -573,6 +573,62 @@
     const TURMA = new URLSearchParams(location.search).get('turma') || '';
 
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10, tabuadas: [2,3,4,5,6,7,8,9] };
+
+    // ── Fundo animado ─────────────────────────────────────────────────────────
+    const _SIMBOLOS = ['+', '−', '×', '÷', '=', 'π', '∞', '√', 'Δ'];
+    class Particula {
+        constructor() { this.reset(true); }
+        reset(init = false) {
+            this.x       = Math.random() * canvas.width;
+            this.y       = init ? Math.random() * canvas.height : canvas.height + 50;
+            this.size    = Math.random() * 40 + 20;  //controla tamanho da partícula
+            this.speedY  = Math.random() * 0.5 + 0.2; //controla a velocidade de subida
+            this.symbol  = _SIMBOLOS[Math.floor(Math.random() * _SIMBOLOS.length)];
+            this.hue     = Math.random() > 0.5 ? 210 : 145;  //azul ou verde aleatório
+            this.opacity = Math.random() * 0.1 + 0.4; //controla a opacidade da partícula
+            this.angle   = Math.random() * Math.PI * 2; //ângulo inicial para rotação
+            this.spin    = (Math.random() - 0.5) * 0.08; //velocidade de rotação, pode ser positiva ou negativa
+        }
+        update() {
+            this.y -= this.speedY;
+            this.angle += this.spin;
+            if (this.y < -50) this.reset();
+        }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.opacity;
+            ctx.fillStyle = `hsl(${this.hue},70%,72%)`;
+            ctx.font = `bold ${this.size}px 'Courier New', monospace`;
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = `hsla(${this.hue},70%,72%,0.5)`;
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.fillText(this.symbol, 0, 0);
+            ctx.restore();
+        }
+    }
+    const _particulas = Array.from({ length: 35 }, () => new Particula());
+
+    function drawFundo() {
+        // Gradiente de fundo
+        const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bg.addColorStop(0, '#0f172a');
+        bg.addColorStop(1, '#020617');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Partículas
+        _particulas.forEach(p => { p.update(); p.draw(); });
+        // Vinheta
+        const vig = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, 0,
+            canvas.width / 2, canvas.height / 2, canvas.width * 0.78
+        );
+        vig.addColorStop(0, 'rgba(2,6,23,0)');
+        vig.addColorStop(1, 'rgba(2,6,23,0.78)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     let tempoInicio = 0;
     let score = 0;
     let scoreJaSalvo = false;
@@ -934,7 +990,8 @@
     }
 
     function drawPauseScreen() {
-        ctx.fillStyle = 'rgba(2, 6, 23, 0.88)';
+        drawFundo();
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Atualiza posições com slowdown suavizado
@@ -1647,8 +1704,7 @@
             return;
         }
 
-        ctx.fillStyle = "#020617";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawFundo();
 
         if(isBulletTime) {
             document.getElementById('pts-bonus').innerText = `Vale: 5 pts (desacelerar)`;
