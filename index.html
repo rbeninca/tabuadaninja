@@ -1081,7 +1081,7 @@
         constructor(valor, isCorrect, slotIndex, totalSlots) {
             this.valor = valor;
             this.isCorrect = isCorrect;
-            this.radius = 50;
+            this.radius = 17;
             this.sliced = false;
             this.emoji = ["🍎", "🍉", "🍍", "🍊", "🍓", "🥝", "🍋"][Math.floor(Math.random()*7)];
             this.trail = [];
@@ -1150,6 +1150,32 @@
         }
     }
 
+    function resolveColisoesFrutas() {
+        for (let i = 0; i < frutas.length; i++) {
+            for (let j = i + 1; j < frutas.length; j++) {
+                const a = frutas[i], b = frutas[j];
+                if (a.sliced || b.sliced) continue;
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const distSq = dx * dx + dy * dy;
+                const minDist = a.radius + b.radius;
+                if (distSq >= minDist * minDist || distSq === 0) continue;
+                const dist = Math.sqrt(distSq);
+                const nx = dx / dist, ny = dy / dist;
+                // Separar os centros
+                const overlap = (minDist - dist) * 0.5;
+                a.x -= nx * overlap; a.y -= ny * overlap;
+                b.x += nx * overlap; b.y += ny * overlap;
+                // Impulso elástico (massas iguais)
+                const dot = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+                if (dot < 0) {
+                    const J = dot * 0.85;
+                    a.vx += J * nx; a.vy += J * ny;
+                    b.vx -= J * nx; b.vy -= J * ny;
+                }
+            }
+        }
+    }
+
     function spawnFrutas() {
         frutas = [];
         const numTotal = 5;
@@ -1209,71 +1235,79 @@
             ctx.stroke();
         }
 
+        for (let i = 0; i < frutas.length; i++) frutas[i].update();
+        resolveColisoesFrutas();
+
+        let alvoCorte = null, distAlvo = Infinity;
+        for (let i = 0; i < frutas.length; i++) {
+            const f = frutas[i];
+            if (f.sliced) continue;
+            for (const p of rastro) {
+                const d = Math.hypot(p.x - f.x, p.y - f.y);
+                if (d < 45 && d < distAlvo) { distAlvo = d; alvoCorte = f; }
+            }
+        }
+
         for(let i = frutas.length - 1; i >= 0; i--) {
             let f = frutas[i];
-            f.update();
             f.draw();
 
-            rastro.forEach(p => {
-                let d = Math.hypot(p.x - f.x, p.y - f.y);
-                if(d < 55 && !f.sliced) {
-                    f.sliced = true;
-                    if(f.isCorrect) {
-                        const baseMax = usouDesaceleracao ? 5 : 10;
-                        const pts = relancamentos === 0 ? baseMax
-                                  : relancamentos === 1 ? Math.max(baseMax - 3, 0)
-                                  : 0;
-                        const scoreAntes = score;
-                        score += pts;
-                        document.getElementById('display-pontos').innerText = score;
-                        if (pts > 0 && Math.floor(score / 100) > Math.floor(scoreAntes / 100)) {
-                            velocidadeAtual++;
-                            document.getElementById('display-vel').innerText = velocidadeAtual;
-                            // flash roxo no indicador de velocidade
-                            const velEl = document.getElementById('display-vel');
-                            velEl.style.textShadow = '0 0 12px #a78bfa';
-                            setTimeout(() => velEl.style.textShadow = '', 800);
-                        }
-                        if (relancamentos < 2) {
-                            acertosSeguidos++;
-                            if (acertosSeguidos % config.metaAcertos === 0) {
-                                updateBarraAcertos(true);
-                                milestoneCount++;
-                                const ganho = 1;
-                                config.vidas += ganho;
-                                document.getElementById('display-vidas').innerText = config.vidas;
-                                setTimeout(() => updateBarraAcertos(), 550);
-                                spawnConfetti(ganho, f.x, f.y);
-                                mostrarMilestone(ganho);
-                                playMilestoneSound();
-                            } else {
-                                updateBarraAcertos();
-                            }
-                        }
-                        spawnFragmentos(f.x, f.y, f.emoji);
-                        playSuccessSound();
-                        const slot = document.getElementById('resultado-slot');
-                        const r = slot.getBoundingClientRect();
-                        flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
-                    } else {
-                        playErrorSound();
-                        spawnExplosao(f.x, f.y);
-                        acertosSeguidos = 0;
-                        milestoneCount = 0;
-                        updateBarraAcertos();
-                        config.vidas--;
-                        document.getElementById('display-vidas').innerText = config.vidas;
-                        animarDanoVida();
-                        if(config.vidas <= 0) {
-                            gameActive = false;
-                            atualizarBtnFullscreen();
-                            document.getElementById('game-over').style.display = 'flex';
-                            document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
-                            submitScore();
+            if(f === alvoCorte) {
+                f.sliced = true;
+                if(f.isCorrect) {
+                    const baseMax = usouDesaceleracao ? 5 : 10;
+                    const pts = relancamentos === 0 ? baseMax
+                              : relancamentos === 1 ? Math.max(baseMax - 3, 0)
+                              : 0;
+                    const scoreAntes = score;
+                    score += pts;
+                    document.getElementById('display-pontos').innerText = score;
+                    if (pts > 0 && Math.floor(score / 100) > Math.floor(scoreAntes / 100)) {
+                        velocidadeAtual++;
+                        document.getElementById('display-vel').innerText = velocidadeAtual;
+                        const velEl = document.getElementById('display-vel');
+                        velEl.style.textShadow = '0 0 12px #a78bfa';
+                        setTimeout(() => velEl.style.textShadow = '', 800);
+                    }
+                    if (relancamentos < 2) {
+                        acertosSeguidos++;
+                        if (acertosSeguidos % config.metaAcertos === 0) {
+                            updateBarraAcertos(true);
+                            milestoneCount++;
+                            const ganho = 1;
+                            config.vidas += ganho;
+                            document.getElementById('display-vidas').innerText = config.vidas;
+                            setTimeout(() => updateBarraAcertos(), 550);
+                            spawnConfetti(ganho, f.x, f.y);
+                            mostrarMilestone(ganho);
+                            playMilestoneSound();
+                        } else {
+                            updateBarraAcertos();
                         }
                     }
+                    spawnFragmentos(f.x, f.y, f.emoji);
+                    playSuccessSound();
+                    const slot = document.getElementById('resultado-slot');
+                    const r = slot.getBoundingClientRect();
+                    flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
+                } else {
+                    playErrorSound();
+                    spawnExplosao(f.x, f.y);
+                    acertosSeguidos = 0;
+                    milestoneCount = 0;
+                    updateBarraAcertos();
+                    config.vidas--;
+                    document.getElementById('display-vidas').innerText = config.vidas;
+                    animarDanoVida();
+                    if(config.vidas <= 0) {
+                        gameActive = false;
+                        atualizarBtnFullscreen();
+                        document.getElementById('game-over').style.display = 'flex';
+                        document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
+                        submitScore();
+                    }
                 }
-            });
+            }
 
             if(f.y > canvas.height + 300) {
                 frutas.splice(i, 1);
