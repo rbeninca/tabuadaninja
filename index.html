@@ -64,7 +64,7 @@
         #matrix-btn:active { background: var(--matrix); color: black; }
 
         #menu-inicial {
-            background: rgba(2, 6, 23, 0.78);
+            background: transparent;
             align-items: flex-start;
             overflow-y: auto;
             padding: 20px;
@@ -73,6 +73,9 @@
         #menu-inicial .card {
             margin: auto;
             max-height: none;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
 
         #pause-btn {
@@ -648,7 +651,7 @@
             '#cddc39','#795548','#f06292'
         ];
         //Controle número de particulas no pause. 
-        var pares = Math.max(4, Math.min(18, Math.round(canvas.width * canvas.height )));
+        var pares = Math.max(4, Math.min(18, Math.round(canvas.width * canvas.height / 45000)));
         for (let i = 0; i < pares; i++) {
             const n1 = Math.floor(Math.random() * 8) + 2;
             const n2 = Math.floor(Math.random() * 8) + 2;
@@ -741,17 +744,17 @@
             ctx.beginPath();
             ctx.arc(item.x, item.y, r, 0, Math.PI * 2);
             ctx.fillStyle = item.glow > 0.2
-                ? cor + Math.round((0.12 + item.glow * 0.3) * 0xff).toString(16).padStart(2, '0')
-                : 'rgba(255,255,255,0.07)';
+                ? cor + Math.round((0.28 + item.glow * 0.4) * 0xff).toString(16).padStart(2, '0')
+                : 'rgba(255,255,255,0.18)';
             ctx.fill();
             ctx.strokeStyle = cor;
-            ctx.lineWidth = item.glow > 0.2 ? 2 + item.glow * 4 : 1.5;
-            ctx.globalAlpha = item.glow > 0.2 ? 1 : 0.45;
+            ctx.lineWidth = item.glow > 0.2 ? 2 + item.glow * 4 : 2;
+            ctx.globalAlpha = item.glow > 0.2 ? 1 : 0.85;
             ctx.stroke();
             ctx.globalAlpha = 1;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.font = `bold ${item.isQ ? 20 : 26}px Arial`;
-            ctx.fillStyle = item.glow > 0.2 ? cor : 'rgba(255,255,255,0.75)';
+            ctx.fillStyle = item.glow > 0.2 ? cor : 'rgba(255,255,255,0.95)';
             ctx.fillText(item.text, item.x, item.y);
             ctx.restore();
         });
@@ -1353,6 +1356,15 @@
     }, {passive: false});
     window.addEventListener('mouseup', () => rastro = []);
     window.addEventListener('touchend', () => rastro = []);
+
+    function redimensionar() {
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+        if (isStartScreen || isPaused) initPauseItems();
+    }
+    window.addEventListener('resize', redimensionar);
+    document.addEventListener('fullscreenchange',       redimensionar);
+    document.addEventListener('webkitfullscreenchange', redimensionar);
 
     carregarRankingMenu();
 
