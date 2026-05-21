@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(Rename-Item \"c:\\\\Users\\\\rbeni\\\\projetos\\\\webti\\\\jogos\\\\tabuada_frute.html\" \"index.html\")"
+      "PowerShell(Rename-Item \"c:\\\\Users\\\\rbeni\\\\projetos\\\\webti\\\\jogos\\\\tabuada_frute.html\" \"index.html\")",
+      "Bash(npx wrangler *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -X POST https://tabuada-ninja-api.rbeninca.workers.dev/score -H \"Content-Type: application/json\" -d \"{\\\\\"nome\\\\\":\\\\\"Teste\\\\\",\\\\\"pontuacao\\\\\":100,\\\\\"tempoJogo\\\\\":60}\")",
+      "Bash(curl -s -I -X OPTIONS https://tabuada-ninja-api.rbeninca.workers.dev/score -H \"Origin: https://rbeninca.github.io\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: Content-Type\")"
     ]
   }
 }

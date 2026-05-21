@@ -318,6 +318,13 @@
                 padding: 10px; color: rgba(255,255,255,0.7); border-radius: 10px;">
                 🔲 Tela cheia
             </button>
+            <div style="margin-top:18px;border-top:1px solid #1e293b;padding-top:14px;">
+                <div style="color:var(--accent);font-size:13px;font-weight:700;letter-spacing:2px;margin-bottom:10px;">🏆 TOP 10</div>
+                <div id="menu-ranking-loading" style="font-size:13px;color:rgba(255,255,255,0.3);text-align:center;padding:8px 0;">carregando...</div>
+                <table id="menu-ranking-table" style="width:100%;border-collapse:collapse;font-size:13px;display:none;">
+                    <tbody id="menu-ranking-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -385,7 +392,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    const WORKER_URL = 'https://tabuada-ninja-api.SEU-SUBDOMINIO.workers.dev';
+    const WORKER_URL = 'https://tabuada-ninja-api.rbeninca.workers.dev';
 
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'misto', metaAcertos: 5 };
     let tempoInicio = 0;
@@ -567,6 +574,7 @@
         updateBarraAcertos();
         document.getElementById('menu-inicial').style.display = 'flex';
         isStartScreen = true;
+        carregarRankingMenu();
         initPauseItems();
         (function startScreenLoop() {
             if (!isStartScreen) return;
@@ -828,41 +836,75 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nome: config.nome, pontuacao: score, tempoJogo }),
             });
-            if (!resp.ok) throw new Error();
-            statusEl.textContent = '✓ Resultado salvo!';
-        } catch {
-            statusEl.textContent = '⚠ Sem conexão — resultado não enviado.';
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                statusEl.textContent = `⚠ Erro ${resp.status}: ${err.error ?? 'desconhecido'}`;
+                console.error('submitScore error:', err);
+            } else {
+                statusEl.textContent = '✓ Resultado salvo!';
+            }
+        } catch (e) {
+            statusEl.textContent = `⚠ Sem conexão: ${e.message}`;
+            console.error('submitScore exception:', e);
         }
         await carregarRanking();
     }
 
+    async function fetchRankingData() {
+        const resp = await fetch(`${WORKER_URL}/ranking`);
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        return Array.isArray(data) ? data : [];
+    }
+
+    function renderRanking(data, tbodyId, destaque = null) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        const medals = ['🥇', '🥈', '🥉'];
+        data.forEach((r, i) => {
+            const isMe = destaque && r.nome === destaque.nome && r.pontuacao === destaque.pontuacao;
+            const tr = document.createElement('tr');
+            tr.style.cssText = `
+                color: ${isMe ? '#f1c40f' : 'rgba(255,255,255,0.8)'};
+                font-weight: ${isMe ? '700' : '400'};
+                border-bottom: 1px solid rgba(255,255,255,0.06);
+            `;
+            tr.innerHTML = `
+                <td style="padding:5px 6px;">${medals[i] ?? `${i+1}º`}</td>
+                <td style="padding:5px 6px;">${r.nome}</td>
+                <td style="padding:5px 6px;text-align:right;">${r.pontuacao}</td>
+                <td style="padding:5px 6px;text-align:right;">${formatTime(r.tempoJogo)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
     async function carregarRanking() {
         try {
-            const resp = await fetch(`${WORKER_URL}/ranking`);
-            if (!resp.ok) return;
-            const data = await resp.json();
-            if (!Array.isArray(data) || data.length === 0) return;
-            const tbody = document.getElementById('ranking-body');
-            tbody.innerHTML = '';
-            const medals = ['🥇', '🥈', '🥉'];
-            data.forEach((r, i) => {
-                const isMe = r.nome === config.nome && r.pontuacao === score;
-                const tr = document.createElement('tr');
-                tr.style.cssText = `
-                    color: ${isMe ? '#f1c40f' : 'rgba(255,255,255,0.8)'};
-                    font-weight: ${isMe ? '700' : '400'};
-                    border-bottom: 1px solid rgba(255,255,255,0.06);
-                `;
-                tr.innerHTML = `
-                    <td style="padding:5px 6px;">${medals[i] ?? `${i+1}º`}</td>
-                    <td style="padding:5px 6px;">${r.nome}</td>
-                    <td style="padding:5px 6px;text-align:right;">${r.pontuacao}</td>
-                    <td style="padding:5px 6px;text-align:right;">${formatTime(r.tempoJogo)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
+            const data = await fetchRankingData();
+            if (data.length === 0) return;
+            renderRanking(data, 'ranking-body', { nome: config.nome, pontuacao: score });
             document.getElementById('ranking-section').style.display = 'block';
         } catch { /* falha silenciosa */ }
+    }
+
+    async function carregarRankingMenu() {
+        const loading = document.getElementById('menu-ranking-loading');
+        const table   = document.getElementById('menu-ranking-table');
+        try {
+            const data = await fetchRankingData();
+            loading.style.display = 'none';
+            if (data.length === 0) {
+                loading.textContent = 'Nenhum resultado ainda.';
+                loading.style.display = 'block';
+                return;
+            }
+            renderRanking(data, 'menu-ranking-body');
+            table.style.display = 'table';
+        } catch {
+            loading.textContent = 'Sem conexão.';
+        }
     }
 
     function startGame() {
@@ -1239,6 +1281,8 @@
     }, {passive: false});
     window.addEventListener('mouseup', () => rastro = []);
     window.addEventListener('touchend', () => rastro = []);
+
+    carregarRankingMenu();
 
 </script>
 </body>
