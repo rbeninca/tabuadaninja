@@ -703,6 +703,14 @@
         btn.textContent = logado ? 'Conta Google' : '✓ Salvar nome';
     }
 
+    function habilitarRecomecar() {
+        const btnRec = document.getElementById('btn-recomecar');
+        if (!btnRec) return;
+        btnRec.disabled = false;
+        btnRec.style.opacity = '';
+        btnRec.style.cursor = '';
+    }
+
     function sugerirNomeDaConta() {
         const input = document.getElementById('nome-input');
         if (!input || !_usuarioLogado) return;
@@ -1606,17 +1614,18 @@
         const records = await sincronizarRanking(true);
         renderRanking(records, 'ranking-body', { nome: novoNome, pontuacao: score });
         document.getElementById('ranking-section').style.display = 'block';
-
-        const btnRec = document.getElementById('btn-recomecar');
-        btnRec.disabled = false;
-        btnRec.style.opacity = '';
-        btnRec.style.cursor = '';
+        habilitarRecomecar();
     }
 
     async function submitScore(apenasEnviar = false) {
         if (score === 0) return;
         const nomeJogador = getNomeJogadorAtual();
+        if (!apenasEnviar && scoreJaSalvo) {
+            habilitarRecomecar();
+            return;
+        }
         const tempoJogo = Math.floor((Date.now() - tempoInicio) / 1000);
+        if (!apenasEnviar) scoreJaSalvo = true;
         if (!apenasEnviar) {
             document.getElementById('resultado-final').innerHTML =
                 `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogo)}`;
@@ -1649,7 +1658,10 @@
             if (!apenasEnviar)
                 document.getElementById('submit-status').textContent = `⚠ Sem conexão: ${e.message}`;
         }
-        if (!apenasEnviar) await carregarRanking();
+        if (!apenasEnviar) {
+            await carregarRanking();
+            habilitarRecomecar();
+        }
     }
 
     function formatDate(r) {
@@ -1986,7 +1998,11 @@
                 const tempoJogoFinal = Math.floor((Date.now() - tempoInicio) / 1000);
                 document.getElementById('resultado-final').innerHTML =
                     `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogoFinal)}`;
-                carregarRanking();
+                if (getNomeContaAtual()) {
+                    submitScore(false);
+                } else {
+                    carregarRanking();
+                }
             }
         }
     }
