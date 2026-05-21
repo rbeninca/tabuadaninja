@@ -374,7 +374,6 @@
                 let d = Math.hypot(p.x - f.x, p.y - f.y);
                 if(d < 55 && !f.sliced) {
                     f.sliced = true;
-                    playSliceSound();
                     if(f.isCorrect) {
                         score += Math.round(questionValue);
                         document.getElementById('display-pontos').innerText = score;
@@ -458,9 +457,11 @@
     matrixBtn.addEventListener('touchend', () => { isBulletTime = false; });
 
     const handleMove = (x, y) => { if(gameActive) rastro.push({x, y}); };
+    canvas.addEventListener('mousedown', () => { if(gameActive) playSliceSound(); });
+    canvas.addEventListener('touchstart', e => { if(gameActive && e.target === canvas) playSliceSound(); }, {passive: true});
     canvas.addEventListener('mousemove', e => { if(e.buttons === 1) handleMove(e.clientX, e.clientY); });
-    canvas.addEventListener('touchmove', e => { 
-        e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); 
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY);
     }, {passive: false});
     window.addEventListener('mouseup', () => rastro = []);
     window.addEventListener('touchend', () => rastro = []);
