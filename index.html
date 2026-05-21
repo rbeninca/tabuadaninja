@@ -42,6 +42,20 @@
             box-sizing: border-box;
             font-size: 20px; font-weight: bold; z-index: 10;
         }
+        #player-hud {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #display-foto {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            object-fit: cover;
+            display: none;
+            box-shadow: 0 0 10px rgba(52,152,219,0.45);
+        }
         #pergunta-container {
             position: absolute; top: calc(90px + env(safe-area-inset-top)); width: 100%;
             text-align: center; pointer-events: none; z-index: 5;
@@ -119,6 +133,49 @@
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
         }
+        #auth-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            background: rgba(255,255,255,0.03);
+        }
+        #auth-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        #auth-user-photo {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.3);
+            object-fit: cover;
+            display: none;
+        }
+        #auth-user-name {
+            font-size: 12px;
+            color: rgba(255,255,255,0.75);
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #auth-btn {
+            width: auto;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(52,152,219,0.2);
+            border: 1px solid rgba(52,152,219,0.5);
+            color: #93c5fd;
+        }
 
         #pause-btn {
             position: absolute; bottom: 24px; left: 24px; display: none;
@@ -155,6 +212,7 @@
             button { padding: 13px; font-size: 18px; }
             .field { margin-bottom: 12px; }
             #pause-btn { font-size: 14px; padding: 5px 10px; margin-left: 6px; }
+            #display-foto { width: 26px; height: 26px; }
 
             .float-dano { font-size: 22px; }
         }
@@ -365,6 +423,13 @@
     <div id="menu-inicial" class="overlay">
         <div class="card">
             <h1>TABUADA NINJA</h1>
+            <div id="auth-panel">
+                <div id="auth-user">
+                    <img id="auth-user-photo" alt="Foto do usuario" referrerpolicy="no-referrer">
+                    <span id="auth-user-name">Visitante</span>
+                </div>
+                <button id="auth-btn" onclick="toggleLogin()">Entrar com Google</button>
+            </div>
 
             <!-- VIEW 1: Ranking + botões principais -->
             <div id="view-ranking">
@@ -468,7 +533,7 @@
     </div>
 
     <div id="game-ui" style="display: none;">
-        <div>👤 <span id="display-nome"></span></div>
+        <div id="player-hud"><img id="display-foto" alt="Foto do jogador" referrerpolicy="no-referrer"><span><span id="display-player-icon">👤</span> <span id="display-nome"></span></span></div>
         <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
         <div style="color:#a78bfa;">⚡ <span id="display-vel">1</span></div>
         <div id="display-vidas-wrap" style="color: var(--danger);">❤️ <span id="display-vidas"></span><div id="barra-acertos"></div></div>
@@ -565,6 +630,10 @@
 
     <canvas id="gameCanvas"></canvas>
 
+    <script src="./firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -573,8 +642,156 @@
     const TURMA = new URLSearchParams(location.search).get('turma') || '';
     const ANIMACAO_PARAM = new URLSearchParams(location.search).get('animacao');
     const USAR_ANIMACAO_ALTERNATIVA = ANIMACAO_PARAM === '1';
+    const FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
 
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10, tabuadas: [2,3,4,5,6,7,8,9] };
+    let _auth = null;
+    let _usuarioLogado = null;
+    let _nomeManualEditado = false;
+    let _nomeAutoPreenchido = '';
+
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function sanitizePhotoUrl(url) {
+        const s = String(url || '').trim();
+        if (!s) return '';
+        if (/^https:\/\//i.test(s)) return s.slice(0, 500);
+        if (/^\/\//.test(s)) return (`https:${s}`).slice(0, 500);
+        if (/^http:\/\//i.test(s)) {
+            // Em https, tenta upgrade para evitar mixed-content.
+            if (window.location.protocol === 'https:') {
+                return s.replace(/^http:\/\//i, 'https://').slice(0, 500);
+            }
+            return s.slice(0, 500);
+        }
+        return '';
+    }
+
+    function getFotoUsuarioAtual() {
+        return sanitizePhotoUrl(_usuarioLogado?.photoURL);
+    }
+
+    function sugerirNomeDaConta() {
+        const input = document.getElementById('nome-input');
+        if (!input || !_usuarioLogado) return;
+        const sugestao = (_usuarioLogado.displayName || _usuarioLogado.email || '').trim();
+        if (!sugestao) return;
+
+        const atual = input.value.trim();
+        const podePreencher = !atual || (!_nomeManualEditado && atual === _nomeAutoPreenchido);
+        if (!podePreencher) return;
+
+        input.value = sugestao;
+        _nomeAutoPreenchido = sugestao;
+    }
+
+    function atualizarHudJogador() {
+        const foto = getFotoUsuarioAtual();
+        const el = document.getElementById('display-foto');
+        const icon = document.getElementById('display-player-icon');
+        if (!el || !icon) return;
+        el.onerror = () => {
+            el.removeAttribute('src');
+            el.style.display = 'none';
+            icon.style.display = '';
+        };
+        if (foto) {
+            el.src = foto;
+            el.style.display = 'block';
+            icon.style.display = 'none';
+            return;
+        }
+        el.removeAttribute('src');
+        el.style.display = 'none';
+        icon.style.display = '';
+    }
+
+    function atualizarUIAuth() {
+        const btn = document.getElementById('auth-btn');
+        const nome = document.getElementById('auth-user-name');
+        const foto = document.getElementById('auth-user-photo');
+        if (!btn || !nome || !foto) return;
+
+        if (!_auth) {
+            btn.disabled = true;
+            btn.textContent = 'Login indisponivel';
+            nome.textContent = 'Visitante';
+            foto.style.display = 'none';
+            foto.removeAttribute('src');
+            return;
+        }
+
+        if (_usuarioLogado) {
+            btn.disabled = false;
+            btn.textContent = 'Sair';
+            nome.textContent = _usuarioLogado.displayName || _usuarioLogado.email || 'Usuario';
+            const url = getFotoUsuarioAtual();
+            if (url) {
+                foto.src = url;
+                foto.onerror = () => {
+                    foto.removeAttribute('src');
+                    foto.style.display = 'none';
+                };
+                foto.style.display = 'block';
+            } else {
+                foto.style.display = 'none';
+                foto.removeAttribute('src');
+            }
+            return;
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Entrar com Google';
+        nome.textContent = 'Visitante';
+        foto.style.display = 'none';
+        foto.removeAttribute('src');
+    }
+
+    async function toggleLogin() {
+        if (!_auth) return;
+        const dbg = document.getElementById('pwa-debug');
+        try {
+            if (_usuarioLogado) {
+                await _auth.signOut();
+                if (dbg) dbg.textContent = '✅ logout realizado';
+                return;
+            }
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            await _auth.signInWithPopup(provider);
+            if (dbg) dbg.textContent = '✅ login realizado';
+        } catch (e) {
+            if (dbg) dbg.textContent = `⚠ login falhou: ${e.message}`;
+        }
+    }
+
+    function initFirebaseAuth() {
+        if (!window.firebase || !window.firebase.auth || !FIREBASE_CONFIG?.apiKey) {
+            atualizarUIAuth();
+            return;
+        }
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+            _auth = firebase.auth();
+            _auth.onAuthStateChanged((user) => {
+                _usuarioLogado = user || null;
+                sugerirNomeDaConta();
+                atualizarUIAuth();
+                atualizarHudJogador();
+            });
+        } catch {
+            _auth = null;
+            _usuarioLogado = null;
+            atualizarUIAuth();
+        }
+    }
 
     // ── Fundo animado ─────────────────────────────────────────────────────────
     const _SIMBOLOS = ['+', '−', '×', '÷', '=', 'π', '∞', '√', 'Δ'];
@@ -1344,7 +1561,15 @@
             await fetch(`${WORKER_URL}/score`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: novoNome, pontuacao: score, tempoJogo, turma: TURMA, tabuadas: formatTabuadas(config.tabuadas) }),
+                body: JSON.stringify({
+                    nome: novoNome,
+                    pontuacao: score,
+                    tempoJogo,
+                    turma: TURMA,
+                    tabuadas: formatTabuadas(config.tabuadas),
+                    uid: _usuarioLogado?.uid || '',
+                    fotoUrl: getFotoUsuarioAtual(),
+                }),
             });
         } catch {}
 
@@ -1374,7 +1599,15 @@
             const resp = await fetch(`${WORKER_URL}/score`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: config.nome, pontuacao: score, tempoJogo, turma: TURMA, tabuadas: formatTabuadas(config.tabuadas) }),
+                body: JSON.stringify({
+                    nome: config.nome,
+                    pontuacao: score,
+                    tempoJogo,
+                    turma: TURMA,
+                    tabuadas: formatTabuadas(config.tabuadas),
+                    uid: _usuarioLogado?.uid || '',
+                    fotoUrl: getFotoUsuarioAtual(),
+                }),
             });
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({}));
@@ -1406,6 +1639,11 @@
         const medals = ['🥇', '🥈', '🥉'];
         data.forEach((r, i) => {
             const isMe = destaque && r.nome === destaque.nome && r.pontuacao === destaque.pontuacao;
+            const foto = sanitizePhotoUrl(r.fotoUrl);
+            const nomeJogador = escapeHtml(r.nome);
+            const nomeComAvatar = foto
+                ? `<span style="display:inline-flex;align-items:center;gap:6px;"><img src="${foto}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:18px;height:18px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.35);">${nomeJogador}</span>`
+                : nomeJogador;
             const tr = document.createElement('tr');
             tr.style.cssText = `
                 color: ${isMe ? '#f1c40f' : 'rgba(255,255,255,0.8)'};
@@ -1414,7 +1652,7 @@
             `;
             tr.innerHTML = `
                 <td style="padding:5px 6px;">${medals[i] ?? `${i+1}º`}</td>
-                <td style="padding:5px 6px;">${r.nome}</td>
+                <td style="padding:5px 6px;">${nomeComAvatar}</td>
                 <td style="padding:5px 6px;text-align:right;">${r.pontuacao}</td>
                 <td style="padding:5px 6px;text-align:center;color:#a78bfa;font-size:11px;">${r.tabuadas || 'todas'}</td>
                 <td style="padding:5px 6px;text-align:right;">${formatTime(r.tempoJogo)}</td>
@@ -1473,6 +1711,7 @@
 
         document.getElementById('display-nome').innerText = config.nome;
         document.getElementById('display-vidas').innerText = config.vidas;
+        atualizarHudJogador();
 
         acertosSeguidos = 0;
         milestoneCount = 0;
@@ -1930,9 +2169,19 @@
 
     carregarRankingMenu();
 
+    initFirebaseAuth();
+
     // Restaura último nome
+    const nomeInput = document.getElementById('nome-input');
+    nomeInput.addEventListener('input', () => {
+        _nomeManualEditado = true;
+    });
+
     const ultimoNome = localStorage.getItem('tabuada_nome');
-    if (ultimoNome) document.getElementById('nome-input').value = ultimoNome;
+    if (ultimoNome) {
+        nomeInput.value = ultimoNome;
+        _nomeManualEditado = true;
+    }
 
     // Turma: banner e título de ranking
     if (TURMA) {
