@@ -22,6 +22,9 @@ export default {
       if (url.pathname === '/ranking' && request.method === 'GET') {
         return await handleRanking(url, env);
       }
+      if (url.pathname === '/config' && request.method === 'GET') {
+        return handleConfig(env);
+      }
       return json({ error: 'Not found' }, 404);
     } catch (e) {
       return json({ error: e.message }, 500);
@@ -136,6 +139,15 @@ async function handleRanking(url, env) {
     }));
 
   return json(ranking);
+}
+
+function handleConfig(env) {
+  return json({
+    apiKey:     env.FIREBASE_API_KEY     || '',
+    authDomain: env.FIREBASE_AUTH_DOMAIN || '',
+    projectId:  env.FIREBASE_PROJECT_ID  || '',
+    appId:      env.FIREBASE_APP_ID      || '',
+  });
 }
 
 // ── Firebase helpers ───────────────────────────────────────────────────────────

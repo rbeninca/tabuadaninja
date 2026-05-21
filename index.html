@@ -651,7 +651,6 @@
 
     <canvas id="gameCanvas"></canvas>
 
-    <script src="./firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
 
@@ -663,7 +662,7 @@
     const TURMA = new URLSearchParams(location.search).get('turma') || '';
     const ANIMACAO_PARAM = new URLSearchParams(location.search).get('animacao');
     const USAR_ANIMACAO_ALTERNATIVA = ANIMACAO_PARAM === '1';
-    const FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
+    let FIREBASE_CONFIG = null;
 
     let config = { nome: "", vidas: 10, velBase: 2, modoInvertido: 'nunca', metaAcertos: 10, tabuadas: [2,3,4,5,6,7,8,9] };
     let _auth = null;
@@ -2312,7 +2311,13 @@
 
     carregarRankingMenu();
 
-    initFirebaseAuth();
+    (async () => {
+        try {
+            const r = await fetch(`${WORKER_URL}/config`);
+            if (r.ok) FIREBASE_CONFIG = await r.json();
+        } catch {}
+        initFirebaseAuth();
+    })();
 
     // Restaura último nome
     const nomeInput = document.getElementById('nome-input');
