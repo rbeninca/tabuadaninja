@@ -305,6 +305,20 @@
                 <button onclick="pedirTelaCheia()" style="margin-top:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);font-size:15px;padding:10px;color:rgba(255,255,255,0.7);border-radius:10px;">
                     🔲 Tela cheia
                 </button>
+                <button onclick="mostrarCreditos()" style="margin-top:10px;background:transparent;border:none;font-size:13px;padding:8px;color:rgba(255,255,255,0.3);cursor:pointer;letter-spacing:1px;">
+                    créditos
+                </button>
+            </div>
+
+            <!-- VIEW 3: Créditos -->
+            <div id="view-creditos" style="display:none;text-align:center;">
+                <img src="./creditos/foto.png" alt="Créditos"
+                     style="width:100%;max-width:380px;border-radius:16px;cursor:pointer;box-shadow:0 0 30px rgba(52,152,219,0.3);"
+                     onclick="mostrarCreditos()">
+                <br>
+                <button onclick="mostrarRanking()" style="margin-top:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);font-size:15px;padding:10px 28px;color:rgba(255,255,255,0.7);border-radius:10px;">
+                    ← Voltar
+                </button>
             </div>
 
             <!-- VIEW 2: Config + começar -->
@@ -358,6 +372,7 @@
         <div>👤 <span id="display-nome"></span><button id="pause-btn" onclick="togglePause()">⏸</button></div>
         <div style="color: var(--danger);">❤️ <span id="display-vidas"></span><div id="barra-acertos"><div class="barra-seg" id="barra-seg-0"></div><div class="barra-seg" id="barra-seg-1"></div><div class="barra-seg" id="barra-seg-2"></div><div class="barra-seg" id="barra-seg-3"></div><div class="barra-seg" id="barra-seg-4"></div></div></div>
         <div style="color: var(--accent);">⭐ <span id="display-pontos">0</span></div>
+        <div style="color:#a78bfa;">⚡ <span id="display-vel">1</span></div>
     </div>
     <div id="pause-overlay" style="display:none;">
         <div class="pause-titulo">⏸ PAUSADO</div>
@@ -430,6 +445,7 @@
     let milestoneCount = 0;
     let usouDesaceleracao = false;
     let relancamentos = 0;
+    let velocidadeAtual = 1;
     let confetti = [];
     const coresMilestone = [
         '#2ecc71','#a8e063','#f1c40f','#e67e22',
@@ -557,17 +573,16 @@
         document.getElementById('confirm-menu').style.display = 'none';
     }
 
-    function mostrarConfig() {
-        document.getElementById('view-ranking').style.display = 'none';
-        document.getElementById('view-config').style.display = 'block';
+    function mostrarView(id) {
+        ['view-ranking','view-config','view-creditos'].forEach(v =>
+            document.getElementById(v).style.display = 'none');
+        document.getElementById(id).style.display = 'block';
         document.getElementById('menu-inicial').scrollTop = 0;
     }
 
-    function mostrarRanking() {
-        document.getElementById('view-config').style.display = 'none';
-        document.getElementById('view-ranking').style.display = 'block';
-        document.getElementById('menu-inicial').scrollTop = 0;
-    }
+    function mostrarConfig()   { mostrarView('view-config');   }
+    function mostrarRanking()  { mostrarView('view-ranking');  }
+    function mostrarCreditos() { mostrarView('view-creditos'); }
 
     function selectMeta(btn) {
         document.querySelectorAll('#meta-toggle .toggle-opt').forEach(b => b.classList.remove('active'));
@@ -594,6 +609,7 @@
     }
 
     function confirmarMenu() {
+        if (score > 0) submitScore(true);
         gameActive = false;
         isPaused = false;
         score = 0;
@@ -601,6 +617,7 @@
         milestoneCount = 0;
         usouDesaceleracao = false;
         relancamentos = 0;
+        velocidadeAtual = config.velBase;
         confetti = [];
         frutas = []; fragmentos = []; explosoes = []; efeitos = [];
         document.getElementById('pause-overlay').style.display = 'none';
@@ -863,12 +880,13 @@
         return `${m}:${String(s).padStart(2, '0')}`;
     }
 
-    async function submitScore() {
+    async function submitScore(apenasEnviar = false) {
         const tempoJogo = Math.floor((Date.now() - tempoInicio) / 1000);
-        document.getElementById('resultado-final').innerHTML =
-            `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogo)}`;
-        const statusEl = document.getElementById('submit-status');
-        statusEl.textContent = 'Enviando resultado...';
+        if (!apenasEnviar) {
+            document.getElementById('resultado-final').innerHTML =
+                `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogo)}`;
+            document.getElementById('submit-status').textContent = 'Enviando resultado...';
+        }
         try {
             const resp = await fetch(`${WORKER_URL}/score`, {
                 method: 'POST',
@@ -877,16 +895,19 @@
             });
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({}));
-                statusEl.textContent = `⚠ Erro ${resp.status}: ${err.error ?? 'desconhecido'}`;
-                console.error('submitScore error:', err);
+                if (!apenasEnviar) {
+                    document.getElementById('submit-status').textContent =
+                        `⚠ Erro ${resp.status}: ${err.error ?? 'desconhecido'}`;
+                }
             } else {
-                statusEl.textContent = '✓ Resultado salvo!';
+                if (!apenasEnviar)
+                    document.getElementById('submit-status').textContent = '✓ Resultado salvo!';
             }
         } catch (e) {
-            statusEl.textContent = `⚠ Sem conexão: ${e.message}`;
-            console.error('submitScore exception:', e);
+            if (!apenasEnviar)
+                document.getElementById('submit-status').textContent = `⚠ Sem conexão: ${e.message}`;
         }
-        await carregarRanking();
+        if (!apenasEnviar) await carregarRanking();
     }
 
     async function fetchRankingData() {
@@ -971,6 +992,8 @@
         score = 0;
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
+        velocidadeAtual = config.velBase;
+        document.getElementById('display-vel').innerText = velocidadeAtual;
         tempoInicio = Date.now();
         pedirTelaCheia();
         isStartScreen = false;
@@ -1018,7 +1041,7 @@
             this.emoji = ["🍎", "🍉", "🍍", "🍊", "🍓", "🥝", "🍋"][Math.floor(Math.random()*7)];
             this.trail = [];
 
-            const fatorVel = Math.pow(config.velBase, 1.5) * 0.025;
+            const fatorVel = Math.pow(velocidadeAtual, 1.5) * 0.025;
             this.gravity = 0.004 + (fatorVel * 0.1);
 
             const slotWidth = canvas.width / totalSlots;
@@ -1155,8 +1178,17 @@
                         const pts = relancamentos === 0 ? baseMax
                                   : relancamentos === 1 ? Math.max(baseMax - 3, 0)
                                   : 0;
+                        const scoreAntes = score;
                         score += pts;
                         document.getElementById('display-pontos').innerText = score;
+                        if (pts > 0 && Math.floor(score / 100) > Math.floor(scoreAntes / 100)) {
+                            velocidadeAtual++;
+                            document.getElementById('display-vel').innerText = velocidadeAtual;
+                            // flash roxo no indicador de velocidade
+                            const velEl = document.getElementById('display-vel');
+                            velEl.style.textShadow = '0 0 12px #a78bfa';
+                            setTimeout(() => velEl.style.textShadow = '', 800);
+                        }
                         if (relancamentos < 2) {
                             acertosSeguidos++;
                             if (acertosSeguidos % config.metaAcertos === 0) {
