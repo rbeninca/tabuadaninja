@@ -678,6 +678,31 @@
         return sanitizePhotoUrl(_usuarioLogado?.photoURL);
     }
 
+    function getNomeContaAtual() {
+        return (_usuarioLogado?.displayName || _usuarioLogado?.email || '').trim();
+    }
+
+    function getNomeJogadorAtual() {
+        const nomeConta = getNomeContaAtual();
+        if (nomeConta) return nomeConta;
+        return document.getElementById('nome-input')?.value.trim() || config.nome || 'Ninja';
+    }
+
+    function atualizarEdicaoNomeFinal() {
+        const input = document.getElementById('nome-edit-input');
+        const btn = document.getElementById('nome-edit-btn');
+        if (!input || !btn) return;
+
+        const logado = !!getNomeContaAtual();
+        input.value = config.nome;
+        input.disabled = logado;
+        input.style.opacity = logado ? '0.65' : '1';
+        btn.disabled = logado;
+        btn.style.opacity = logado ? '0.55' : '';
+        btn.style.cursor = logado ? 'not-allowed' : '';
+        btn.textContent = logado ? 'Conta Google' : '✓ Salvar nome';
+    }
+
     function sugerirNomeDaConta() {
         const input = document.getElementById('nome-input');
         if (!input || !_usuarioLogado) return;
@@ -1546,6 +1571,7 @@
 
     async function salvarNomeEdicao() {
         if (scoreJaSalvo) return;
+        if (getNomeContaAtual()) return;
         const novoNome = document.getElementById('nome-edit-input').value.trim();
         if (!novoNome) return;
         scoreJaSalvo = true;
@@ -1589,6 +1615,7 @@
 
     async function submitScore(apenasEnviar = false) {
         if (score === 0) return;
+        const nomeJogador = getNomeJogadorAtual();
         const tempoJogo = Math.floor((Date.now() - tempoInicio) / 1000);
         if (!apenasEnviar) {
             document.getElementById('resultado-final').innerHTML =
@@ -1600,7 +1627,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    nome: config.nome,
+                    nome: nomeJogador,
                     pontuacao: score,
                     tempoJogo,
                     turma: TURMA,
@@ -1690,8 +1717,8 @@
     }
 
     function startGame() {
-        config.nome = document.getElementById('nome-input').value;
-        localStorage.setItem('tabuada_nome', config.nome);
+        config.nome = getNomeJogadorAtual();
+        if (!getNomeContaAtual()) localStorage.setItem('tabuada_nome', config.nome);
         config.vidas = parseInt(document.getElementById('vidas-input').value);
         config.velBase = parseInt(document.getElementById('vel-slider').value);
         config.modoInvertido = document.getElementById('modo-select').value;
@@ -1720,8 +1747,7 @@
         confetti = [];
         score = 0;
         scoreJaSalvo = false;
-        const btnSalvar = document.getElementById('nome-edit-btn');
-        if (btnSalvar) { btnSalvar.textContent = '✓ Salvar nome'; btnSalvar.disabled = false; }
+        atualizarEdicaoNomeFinal();
         document.getElementById('display-pontos').innerText = '0';
         updateBarraAcertos();
         velocidadeAtual = config.velBase;
@@ -1956,7 +1982,7 @@
                 document.getElementById('matrix-btn').style.display = 'none';
                 document.getElementById('game-over').style.display = 'flex';
                 document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
-                document.getElementById('nome-edit-input').value = config.nome;
+                atualizarEdicaoNomeFinal();
                 const tempoJogoFinal = Math.floor((Date.now() - tempoInicio) / 1000);
                 document.getElementById('resultado-final').innerHTML =
                     `⭐ ${score} pontos &nbsp;·&nbsp; ⏱ ${formatTime(tempoJogoFinal)}`;
