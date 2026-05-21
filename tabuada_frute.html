@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ninja da Tabuada - Controle de Velocidade</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Arial', sans-serif; touch-action: none; }
+        canvas { display: block; }
+        
+        #pergunta-ui {
+            position: absolute; top: 20px; width: 100%; text-align: center;
+            color: white; font-size: clamp(30px, 8vw, 50px); font-weight: bold; pointer-events: none;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        #controle-velocidade {
+            position: absolute; top: 20px; right: 20px; 
+            background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 15px;
+            color: white; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+
+        #stats {
+            position: absolute; bottom: 20px; left: 20px; color: #fff;
+            font-size: 18px; pointer-events: none; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px;
+        }
+
+        #game-over {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.95); color: white; padding: 40px;
+            border-radius: 30px; text-align: center; display: none; border: 3px solid #f1c40f; z-index: 100;
+        }
+        
+        input[type=range] { width: 100px; cursor: pointer; }
+        button { padding: 15px 40px; font-size: 22px; background: #e74c3c; color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="pergunta-ui">
+        <span id="conta">---</span><span id="resultado-interrogacao" style="color: #f1c40f;">?</span>
+    </div>
+
+    <div id="controle-velocidade">
+        <div style="font-size: 12px; margin-bottom: 5px;">VELOCIDADE / NÍVEL</div>
+        <input type="range" id="levelSlider" min="1" max="10" value="1">
+        <div id="levelVal" style="font-size: 20px; font-weight: bold; color: #f1c40f;">1</div>
+    </div>
+
+    <div id="stats">
+        ❤️ Vidas: <span id="lives">3</span> | ⭐ Pontos: <span id="score">0</span>
+    </div>
+
+    <div id="game-over">
+        <h1>Fim de Jogo!</h1>
+        <p id="final-score" style="font-size: 20px;"></p>
+        <button onclick="resetGame()">Jogar de Novo</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const levelSlider = document.getElementById('levelSlider');
+    const levelVal = document.getElementById('levelVal');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let score = 0;
+    let lives = 3;
+    let gameActive = true;
+    let rastro = [];
+    let frutas = [];
+    let fragmentos = [];
+    let efeitos = [];
+    let flyingNumber = null;
+    let pergunta = { n1: 0, n2: 0, res: 0 };
+
+    const emojis = ["🍎", "🍉", "🍍", "🥭", "🍊", "🍓", "🥝"];
+
+    // A mágica da lentidão está aqui
+    const getGravity = () => 0.005 + (parseInt(levelSlider.value) * 0.015);
+    const getImpulse = () => 4 + (parseInt(levelSlider.value) * 1.5);
+
+    function novaPergunta() {
+        pergunta.n1 = Math.floor(Math.random() * 8) + 2;
+        pergunta.n2 = Math.floor(Math.random() * 8) + 2;
+        pergunta.res = pergunta.n1 * pergunta.n2;
+        document.getElementById('conta').innerText = `${pergunta.n1} x ${pergunta.n2} = `;
+        document.getElementById('resultado-interrogacao').innerText = "?";
+        document.getElementById('resultado-interrogacao').style.color = "#f1c40f";
+        spawnLote();
+    }
+
+    class Fruta {
+        constructor(valor, isCorrect) {
+            this.valor = valor;
+            this.isCorrect = isCorrect;
+            this.radius = 45;
+            this.sliced = false;
+            this.emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            
+            const grav = getGravity();
+            const imp = getImpulse();
+            
+            // Lado do spawn
+            this.x = Math.random() < 0.5 ? -40 : canvas.width + 40;
+            this.y = canvas.height * 0.8;
+            
+            // Alvo sempre no terço central da tela
+            const alvoX = (canvas.width * 0.3) + (Math.random() * canvas.width * 0.4);
+            
+            // Cálculo físico para a parábola passar na tela independente da velocidade
+            this.vy = -imp;
+            const tempoNoAr = (2 * imp) / grav;
+            this.vx = (alvoX - this.x) / tempoNoAr;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += getGravity();
+        }
+
+        draw() {
+            if (this.sliced) return;
+            ctx.save();
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "60px Arial";
+            ctx.fillText(this.emoji, this.x, this.y);
+            
+            ctx.font = "bold 30px Arial";
+            ctx.fillStyle = "white";
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 4;
+            ctx.strokeText(this.valor, this.x, this.y);
+            ctx.fillText(this.valor, this.x, this.y);
+            ctx.restore();
+        }
+    }
+
+    class Fragmento {
+        constructor(x, y, vx, vy, emoji, lado) {
+            this.x = x; this.y = y;
+            this.vx = vx + (lado === 'L' ? -2 : 2);
+            this.vy = vy;
+            this.emoji = emoji;
+            this.angle = 0;
+            this.rotSpeed = lado === 'L' ? -0.05 : 0.05;
+            this.opacity = 1;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += getGravity() * 2;
+            this.angle += this.rotSpeed;
+            this.opacity -= 0.015;
+        }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.opacity;
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.font = "45px Arial";
+            ctx.fillText(this.emoji, 0, 0);
+            ctx.restore();
+        }
+    }
+
+    function spawnLote() {
+        frutas = [];
+        frutas.push(new Fruta(pergunta.res, true));
+        for(let i=0; i<2; i++) {
+            let errado = pergunta.res + (Math.floor(Math.random()*12)-6);
+            if(errado === pergunta.res || errado < 0) errado += 10;
+            frutas.push(new Fruta(errado, false));
+        }
+    }
+
+    function triggerExplosion(x, y) {
+        efeitos.push({x, y, r: 10, alpha: 1});
+        lives--;
+        document.getElementById('lives').innerText = lives;
+        if(lives <= 0) endGame();
+        else {
+            // Se errou, limpa as frutas e tenta a mesma pergunta de novo
+            setTimeout(spawnLote, 1000);
+        }
+    }
+
+    function triggerSuccess(fruta) {
+        score += 10;
+        document.getElementById('score').innerText = score;
+        
+        flyingNumber = {
+            x: fruta.x, y: fruta.y, val: fruta.valor,
+            targetX: canvas.width / 2 + (canvas.width * 0.1),
+            targetY: 45, progress: 0
+        };
+
+        // Aumenta nível automaticamente a cada 100 pontos (opcional)
+        if(score % 100 === 0 && levelSlider.value < 10) {
+            levelSlider.value = parseInt(levelSlider.value) + 1;
+            levelVal.innerText = levelSlider.value;
+        }
+    }
+
+    function update() {
+        if(!gameActive) return;
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Rastro Neon
+        if(rastro.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 6;
+            ctx.lineCap = "round";
+            ctx.moveTo(rastro[0].x, rastro[0].y);
+            rastro.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.stroke();
+        }
+
+        // Desenhar Frutas
+        for(let i = frutas.length - 1; i >= 0; i--) {
+            let f = frutas[i];
+            f.update();
+            f.draw();
+
+            rastro.forEach(p => {
+                let d = Math.hypot(p.x - f.x, p.y - f.y);
+                if(d < f.radius && !f.sliced) {
+                    f.sliced = true;
+                    fragmentos.push(new Fragmento(f.x, f.y, f.vx, f.vy, f.emoji, 'L'));
+                    fragmentos.push(new Fragmento(f.x, f.y, f.vx, f.vy, f.emoji, 'R'));
+                    
+                    if(f.isCorrect) triggerSuccess(f);
+                    else triggerExplosion(f.x, f.y);
+                }
+            });
+
+            if(f.y > canvas.height + 150) {
+                frutas.splice(i, 1);
+                if(frutas.length === 0 && !flyingNumber) spawnLote();
+            }
+        }
+
+        // Fragmentos
+        fragmentos.forEach((frag, idx) => {
+            frag.update();
+            frag.draw();
+            if(frag.opacity <= 0) fragmentos.splice(idx, 1);
+        });
+
+        // Explosão Vermelha (Dano)
+        efeitos.forEach((ef, idx) => {
+            ctx.beginPath();
+            ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(239, 68, 68, ${ef.alpha})`;
+            ctx.lineWidth = 10;
+            ctx.stroke();
+            ef.r += 15;
+            ef.alpha -= 0.05;
+            if(ef.alpha <= 0) efeitos.splice(idx, 1);
+        });
+
+        // Animação do número voando para o topo
+        if(flyingNumber) {
+            flyingNumber.progress += 0.03;
+            let curX = flyingNumber.x + (flyingNumber.targetX - flyingNumber.x) * flyingNumber.progress;
+            let curY = flyingNumber.y + (flyingNumber.targetY - flyingNumber.y) * flyingNumber.progress;
+            
+            ctx.fillStyle = "#f1c40f";
+            ctx.font = "bold 45px Arial";
+            ctx.fillText(flyingNumber.val, curX, curY);
+
+            if(flyingNumber.progress >= 1) {
+                document.getElementById('resultado-interrogacao').innerText = flyingNumber.val;
+                document.getElementById('resultado-interrogacao').style.color = "#4ade80";
+                flyingNumber = null;
+                setTimeout(novaPergunta, 1000);
+            }
+        }
+
+        if(rastro.length > 12) rastro.shift();
+        requestAnimationFrame(update);
+    }
+
+    function endGame() {
+        gameActive = false;
+        document.getElementById('game-over').style.display = "block";
+        document.getElementById('final-score').innerText = `Pontos: ${score} | Nível Final: ${levelSlider.value}`;
+    }
+
+    function resetGame() {
+        score = 0; lives = 3; gameActive = true;
+        document.getElementById('score').innerText = "0";
+        document.getElementById('lives').innerText = "3";
+        document.getElementById('game-over').style.display = "none";
+        frutas = [];
+        novaPergunta();
+        update();
+    }
+
+    // Controles
+    levelSlider.oninput = () => { levelVal.innerText = levelSlider.value; };
+
+    const handleInput = (x, y) => { if(gameActive) rastro.push({x, y}); };
+    canvas.addEventListener('mousemove', e => { if(e.buttons === 1) handleInput(e.clientX, e.clientY); });
+    canvas.addEventListener('touchmove', e => { 
+        e.preventDefault(); 
+        handleInput(e.touches[0].clientX, e.touches[0].clientY); 
+    }, {passive: false});
+    window.addEventListener('mouseup', () => rastro = []);
+    window.addEventListener('touchend', () => rastro = []);
+
+    novaPergunta();
+    update();
+</script>
+</body>
+</html>
