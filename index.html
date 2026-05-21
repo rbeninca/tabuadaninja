@@ -353,7 +353,7 @@
                         <option value="sempre">🔄 Resultado → Conta (ex: ? = 12)</option>
                     </select>
                 </div>
-                <details style="margin-top:10px;cursor:pointer;">
+                <details id="advanced-options" style="margin-top:10px;cursor:pointer;display:none;">
                     <summary style="font-size:13px;color:rgba(255,255,255,0.35);letter-spacing:1px;list-style:none;user-select:none;">
                         ⚙ Configurações avançadas
                     </summary>
@@ -1093,9 +1093,11 @@
             this.x = (slotWidth * slotIndex) + (slotWidth / 2);
             this.y = canvas.height + 100;
 
-            const alturaAlvo = canvas.height * 0.88;
-            this.vy = -Math.sqrt(2 * this.gravity * alturaAlvo);
-            this.vx = (Math.random() - 0.5) * 1.5;
+            const alturaAlvo = canvas.height * (0.70 + Math.random() * 0.30);
+            const velocidade = Math.sqrt(2 * this.gravity * alturaAlvo);
+            const angulo = (Math.random() - 0.5) * 0.35;
+            this.vy = -velocidade * Math.cos(angulo);
+            this.vx = velocidade * Math.sin(angulo);
         }
 
         update() {
@@ -1205,6 +1207,64 @@
         }
     }
 
+    function cortarFruta(f) {
+        if (f.sliced) return;
+        f.sliced = true;
+        if(f.isCorrect) {
+            const baseMax = usouDesaceleracao ? 5 : 10;
+            const pts = relancamentos === 0 ? baseMax
+                      : relancamentos === 1 ? Math.max(baseMax - 3, 0)
+                      : 0;
+            const scoreAntes = score;
+            score += pts;
+            document.getElementById('display-pontos').innerText = score;
+            if (pts > 0 && Math.floor(score / 100) > Math.floor(scoreAntes / 100)) {
+                velocidadeAtual++;
+                document.getElementById('display-vel').innerText = velocidadeAtual;
+                const velEl = document.getElementById('display-vel');
+                velEl.style.textShadow = '0 0 12px #a78bfa';
+                setTimeout(() => velEl.style.textShadow = '', 800);
+            }
+            if (relancamentos < 2) {
+                acertosSeguidos++;
+                if (acertosSeguidos % config.metaAcertos === 0) {
+                    updateBarraAcertos(true);
+                    milestoneCount++;
+                    const ganho = 1;
+                    config.vidas += ganho;
+                    document.getElementById('display-vidas').innerText = config.vidas;
+                    setTimeout(() => updateBarraAcertos(), 550);
+                    spawnConfetti(ganho, f.x, f.y);
+                    mostrarMilestone(ganho);
+                    playMilestoneSound();
+                } else {
+                    updateBarraAcertos();
+                }
+            }
+            spawnFragmentos(f.x, f.y, f.emoji);
+            playSuccessSound();
+            const slot = document.getElementById('resultado-slot');
+            const r = slot.getBoundingClientRect();
+            flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
+        } else {
+            playErrorSound();
+            spawnExplosao(f.x, f.y);
+            acertosSeguidos = 0;
+            milestoneCount = 0;
+            updateBarraAcertos();
+            config.vidas--;
+            document.getElementById('display-vidas').innerText = config.vidas;
+            animarDanoVida();
+            if(config.vidas <= 0) {
+                gameActive = false;
+                atualizarBtnFullscreen();
+                document.getElementById('game-over').style.display = 'flex';
+                document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
+                submitScore();
+            }
+        }
+    }
+
     function animate() {
         if(!gameActive) return;
 
@@ -1252,62 +1312,7 @@
             let f = frutas[i];
             f.draw();
 
-            if(f === alvoCorte) {
-                f.sliced = true;
-                if(f.isCorrect) {
-                    const baseMax = usouDesaceleracao ? 5 : 10;
-                    const pts = relancamentos === 0 ? baseMax
-                              : relancamentos === 1 ? Math.max(baseMax - 3, 0)
-                              : 0;
-                    const scoreAntes = score;
-                    score += pts;
-                    document.getElementById('display-pontos').innerText = score;
-                    if (pts > 0 && Math.floor(score / 100) > Math.floor(scoreAntes / 100)) {
-                        velocidadeAtual++;
-                        document.getElementById('display-vel').innerText = velocidadeAtual;
-                        const velEl = document.getElementById('display-vel');
-                        velEl.style.textShadow = '0 0 12px #a78bfa';
-                        setTimeout(() => velEl.style.textShadow = '', 800);
-                    }
-                    if (relancamentos < 2) {
-                        acertosSeguidos++;
-                        if (acertosSeguidos % config.metaAcertos === 0) {
-                            updateBarraAcertos(true);
-                            milestoneCount++;
-                            const ganho = 1;
-                            config.vidas += ganho;
-                            document.getElementById('display-vidas').innerText = config.vidas;
-                            setTimeout(() => updateBarraAcertos(), 550);
-                            spawnConfetti(ganho, f.x, f.y);
-                            mostrarMilestone(ganho);
-                            playMilestoneSound();
-                        } else {
-                            updateBarraAcertos();
-                        }
-                    }
-                    spawnFragmentos(f.x, f.y, f.emoji);
-                    playSuccessSound();
-                    const slot = document.getElementById('resultado-slot');
-                    const r = slot.getBoundingClientRect();
-                    flyingNumber = { x: f.x, y: f.y, val: f.valor, progress: 0, targetX: r.left + r.width / 2, targetY: r.top + r.height / 2 };
-                } else {
-                    playErrorSound();
-                    spawnExplosao(f.x, f.y);
-                    acertosSeguidos = 0;
-                    milestoneCount = 0;
-                    updateBarraAcertos();
-                    config.vidas--;
-                    document.getElementById('display-vidas').innerText = config.vidas;
-                    animarDanoVida();
-                    if(config.vidas <= 0) {
-                        gameActive = false;
-                        atualizarBtnFullscreen();
-                        document.getElementById('game-over').style.display = 'flex';
-                        document.getElementById('resumo-final').innerText = `Fim do treino, ${config.nome}!`;
-                        submitScore();
-                    }
-                }
-            }
+            if(f === alvoCorte) cortarFruta(f);
 
             if(f.y > canvas.height + 300) {
                 frutas.splice(i, 1);
@@ -1425,8 +1430,27 @@
     matrixBtn.addEventListener('touchend', () => { isBulletTime = false; });
 
     const handleMove = (x, y) => { if(gameActive) rastro.push({x, y}); };
-    canvas.addEventListener('mousedown', () => { if(gameActive) playSliceSound(); });
-    canvas.addEventListener('touchstart', e => { if(gameActive && e.target === canvas) playSliceSound(); }, {passive: true});
+
+    function tentarCortarEm(x, y) {
+        if (!gameActive) return;
+        let alvo = null, melhorD = Infinity;
+        for (const f of frutas) {
+            if (f.sliced) continue;
+            const d = Math.hypot(x - f.x, y - f.y);
+            if (d < f.radius && d < melhorD) { melhorD = d; alvo = f; }
+        }
+        if (alvo) cortarFruta(alvo);
+    }
+
+    canvas.addEventListener('mousedown', e => {
+        if(gameActive) { playSliceSound(); tentarCortarEm(e.clientX, e.clientY); }
+    });
+    canvas.addEventListener('touchstart', e => {
+        if(gameActive && e.target === canvas) {
+            playSliceSound();
+            tentarCortarEm(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, {passive: true});
     canvas.addEventListener('mousemove', e => { if(e.buttons === 1) handleMove(e.clientX, e.clientY); });
     canvas.addEventListener('touchmove', e => {
         e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY);
@@ -1449,9 +1473,10 @@
     const ultimoNome = localStorage.getItem('tabuada_nome');
     if (ultimoNome) document.getElementById('nome-input').value = ultimoNome;
 
-    // Abre configurações avançadas se ?menu=true
     if (new URLSearchParams(location.search).get('menu') === 'true') {
-        document.querySelector('details').open = true;
+        const adv = document.getElementById('advanced-options');
+        adv.style.display = 'block';
+        adv.open = true;
     }
 
 </script>
